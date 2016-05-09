@@ -7,7 +7,7 @@ public class RoutingTable{
     private ArrayList<TableItem> itemList;
 	
 	class TableItem{
-	  private int id, distance;
+	  	private int id, distance;
 		private Node node;
 		
 		TableItem(int id, int distance, Node node){
