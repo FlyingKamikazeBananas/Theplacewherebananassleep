@@ -57,9 +57,8 @@ public class RoutingTable{
 		itemList.add(new TableItem(id, distance, node));
 	}
 	
-	public void removeItemById(int id){
-		itemList.remove(new TableItem(id, 0, null));
-			
+	public boolean removeItemById(int id){
+		return itemList.remove(new TableItem(id, 0, null));
 	}
 	
 	public TableItem getItemById(int id) throws IllegalArgumentException{
