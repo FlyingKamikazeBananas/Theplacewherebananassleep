@@ -13,7 +13,7 @@ public class Node {
 	private PriorityQueue<Task> taskQueue;
 	private RoutingTable routingTable;
 	private List<Event> eventList;
-	private List<Node> neighbours;
+	private List<Node> neighboursList;
 	private Position position;
 	private boolean recentlyUpdated;
 	private NodeState nodeState;
@@ -32,13 +32,20 @@ public class Node {
 		
 		taskQueue = new PriorityQueue<Task>(10, taskComparator);
 		eventList = new ArrayList<Event>();
-		neighbours = new ArrayList<Node>();
+		neighboursList = new ArrayList<Node>();
 		routingTable = new RoutingTable();
 	}
 	
 	public void update(){
+		if(field.getRecentlyChangedNodeNetwork()){
+			findNeighbours();
+		}
+		
 		if(nodeState == NodeState.BUSY && !recentlyUpdated){
 			//do stuff
+			if(taskQueue.isEmpty()){
+				setNodeState(NodeState.READY);
+			}
 		}
 	}
 	
@@ -50,10 +57,12 @@ public class Node {
 	
 	public void generateNewTask(Event event){
 		taskQueue.add(new Task(event, TaskAction.CREATE_AGENTMESSAGE));
+		setNodeState(NodeState.BUSY);
 	}
 	
 	public void generateNewTask(Integer i){
 		taskQueue.add(new Task(i, TaskAction.CREATE_REQUESTMESSAGE));
+		setNodeState(NodeState.BUSY);
 	}
 	
 	protected void generateNewTask(Message message){
@@ -62,6 +71,7 @@ public class Node {
 		}else{
 			taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
 		}
+		setNodeState(NodeState.BUSY);
 	}
 	
 	protected NodeState getNodeState(){
@@ -90,7 +100,11 @@ public class Node {
 	}
 	
 	private void findNeighbours(){
-		
+		neighboursList = field.getNodesWithinRangeofNode(this);
+	}
+	
+	private void setNodeState(NodeState nodeState){
+		this.nodeState = nodeState;
 	}
 	
 	

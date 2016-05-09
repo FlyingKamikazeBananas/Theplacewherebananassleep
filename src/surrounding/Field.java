@@ -9,10 +9,17 @@ import nodebasis.Node;
 
 public class Field {
 
+	private static final int MAX_PLACEHOLDER = 0;
+	
 	private HashMap<Position, Node> nodeMap;
+	private boolean recentlyChangedNodeNetwork;
 	
 	public Field(/*params*/){
+		recentlyChangedNodeNetwork = true;
 		nodeMap = new HashMap<Position, Node>();
+		
+		update();
+		setRecentlyChangedNodeNetwork(false);
 	}
 	
 	protected void update(){
@@ -20,11 +27,16 @@ public class Field {
 	}
 	
 	public ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
-		//
 		int signalStrength = nodeAtCentrum.getSignalStrength();
-		int minY = (0 < nodeAtCentrum.getPosition().getY()-signalStrength ? 
-				nodeAtCentrum.getPosition().getY()-signalStrength : 0);
-		int maxY = 0; //change
+		int centrumX = nodeAtCentrum.getPosition().getX();
+		int centrumY = nodeAtCentrum.getPosition().getY();
+		int minY = (0 < centrumY-signalStrength ? centrumY-signalStrength : 0);
+		int maxY = (MAX_PLACEHOLDER > centrumY+signalStrength ? MAX_PLACEHOLDER 
+				: centrumY+signalStrength); //change placeholder
+		int currentYOffset;
+		int currentMinX;
+		int currentMaxX;
+		int boundsX;
 		ArrayList<Node> listToReturn = new ArrayList<Node>();
 		
 		for(Entry<Position, Node> entry : nodeMap.entrySet()){
@@ -32,9 +44,28 @@ public class Field {
 			Node mapNode = entry.getValue();
 			
 			if(minY <= mapPos.getY() && mapPos.getY() <= maxY){
+				currentYOffset = Math.abs(centrumY-mapPos.getY());
+				boundsX = (int)Math.sqrt(Math.abs(Math.pow(signalStrength, 2)-
+						Math.pow(currentYOffset, 2))); 
+				currentMinX = (0 < centrumX-boundsX ? centrumX-boundsX : 0);
+				currentMaxX = (MAX_PLACEHOLDER > centrumX+boundsX ? MAX_PLACEHOLDER 
+						: centrumX+boundsX); //change placeholder
 				
+				if((centrumX <= mapPos.getX() && mapPos.getX() <= currentMaxX) ||
+						(currentMinX <= mapPos.getX() && mapPos.getX() < centrumX)){
+					listToReturn.add(mapNode);
+				}
 			}
-			
 		}
+		
+		return listToReturn;
+	}
+	
+	public boolean getRecentlyChangedNodeNetwork(){
+		return recentlyChangedNodeNetwork;
+	}
+	
+	private void setRecentlyChangedNodeNetwork(boolean recentlyChangedNodeNetwork){
+		this.recentlyChangedNodeNetwork = recentlyChangedNodeNetwork;
 	}
 }
