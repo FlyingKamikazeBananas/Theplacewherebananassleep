@@ -4,10 +4,10 @@ import java.util.ArrayList;
 
 public class RoutingTable{
 	
-    private ArrayList<TableItem> itemList;
+	private ArrayList<TableItem> itemList;
 	
 	class TableItem{
-	  	private int id, distance;
+		private int id, distance;
 		private Node node;
 		
 		TableItem(int id, int distance, Node node){
@@ -57,8 +57,9 @@ public class RoutingTable{
 		itemList.add(new TableItem(id, distance, node));
 	}
 	
-	public boolean removeItemById(int id){
-		return itemList.remove(new TableItem(id, 0, null));
+	public void removeItemById(int id){
+		itemList.remove(new TableItem(id, 0, null));
+			
 	}
 	
 	public TableItem getItemById(int id) throws IllegalArgumentException{
@@ -67,7 +68,7 @@ public class RoutingTable{
 				return item;
 			}
 		}
-		throw new IllegalArgumentException();
+		throw new IllegalArgumentException("item with id not found");
 	}
 	
 	
