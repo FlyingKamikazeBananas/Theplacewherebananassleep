@@ -6,11 +6,13 @@ public class Event {
 	
 	private int id, time;
 	private Position position;
+	private Node node;
 	
-	public Event(int id, int time, Position position){
+	public Event(int id, int time, Node node){
 		this.id = id;
 		this.time = time;
-		this.position = position;
+		this.position = node.getPosition();
+		this.node = node;
 	}
 
 	public int getId() {
@@ -23,6 +25,10 @@ public class Event {
 
 	public Position getPosition() {
 		return position;
+	}
+	
+	public Node getNode(){
+		return node;
 	}
 	
 	

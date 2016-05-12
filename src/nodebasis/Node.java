@@ -2,8 +2,10 @@ package nodebasis;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Map.Entry;
 
 import surrounding.Field;
 import coordination.Position;
@@ -11,11 +13,11 @@ import coordination.Position;
 public class Node {
 
 	private PriorityQueue<Task> taskQueue;
-	private RoutingTable routingTable;
+	private HashMap<Integer, ImplicitEvent> routingMap;
 	private List<Event> eventList;
 	private List<Node> neighboursList;
 	private Position position;
-	private boolean recentlyUpdated;
+	private int timeOfMostRecentUpdate;
 	private NodeState nodeState;
 	private int signalStrength;
 	private Field field;
@@ -28,29 +30,69 @@ public class Node {
 		this.signalStrength = signalStrength;
 		
 		nodeState = NodeState.READY;
-		recentlyUpdated = false;
+		timeOfMostRecentUpdate = 0;
 		
 		taskQueue = new PriorityQueue<Task>(10, taskComparator);
 		eventList = new ArrayList<Event>();
 		neighboursList = new ArrayList<Node>();
-		routingTable = new RoutingTable();
+		routingMap = new HashMap<Integer, ImplicitEvent>();
 	}
 	
 	public void update(){
+		Task currentTask;
+		Message message;
+		
 		if(field.getRecentlyChangedNodeNetwork()){
 			findNeighbours();
 		}
 		
-		if(nodeState == NodeState.BUSY && !recentlyUpdated){
-			//do stuff
+		if(nodeState == NodeState.BUSY && !hasUpdatedThisTimeTick()){
 			if(taskQueue.isEmpty()){
 				setNodeState(NodeState.READY);
+			}else{
+				currentTask = taskQueue.peek();
+				
+				switch(currentTask.getAction()){
+				case CREATE_AGENTMESSAGE:
+					message = new AgentMessage(this, 0, 0); //FIIXXXX
+					break;
+				case CREATE_REQUESTMESSAGE:
+					message = new RequestMessage(0, 0, 0);//FIIXXXX
+					break;
+				case HANDLE_AGENTMESSAGE:
+					message = (AgentMessage)currentTask.getDataObject();
+					update((AgentMessage)message);
+					break;
+				case HANDLE_REQUESTMESSAGE:
+					message = (RequestMessage)currentTask.getDataObject();
+					break;
+				}
+				
+				setTimeOfMostRecentUpdate(field.getCurrentTime());
+			}
+			
+		}
+	}
+	
+	private void update(AgentMessage agentMessage){
+		HashMap<Integer, ImplicitEvent> agentRoutingMap = agentMessage.getRoutingMap();
+		ImplicitEvent implicitEvent;
+		int distance;
+		
+		for(Entry<Integer, ImplicitEvent> entry : agentRoutingMap.entrySet()){
+			implicitEvent = routingMap.get(entry.getKey());
+			distance = entry.getValue().getDistance();
+			
+			if(implicitEvent != null && implicitEvent.getDistance() > distance){
+				routingMap.replace(entry.getKey(), entry.getValue());
+			}else{
+				routingMap.put(entry.getKey(), entry.getValue());
 			}
 		}
 	}
 	
 	public Event generateNewEvent(int id, int time){
-		Event e = new Event(id, time, this.position);
+		Event e = new Event(id, time, this);
 		eventList.add(e);
 		return e;
 	}
@@ -68,18 +110,19 @@ public class Node {
 	protected void generateNewTask(Message message){
 		if(message.getClass() == AgentMessage.class){
 			taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
-		}else{
+		}else if(message.getClass() == RequestMessage.class){
 			taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
 		}
 		setNodeState(NodeState.BUSY);
+		setTimeOfMostRecentUpdate(field.getCurrentTime());
 	}
 	
 	protected NodeState getNodeState(){
 		return nodeState;
 	}
 	
-	protected RoutingTable getRoutingTable(){
-		return routingTable;
+	protected HashMap<Integer, ImplicitEvent> getRoutingMap(){
+		return routingMap;
 	}
 	
 	protected Event getEventById(int id) throws IllegalArgumentException{
@@ -107,5 +150,12 @@ public class Node {
 		this.nodeState = nodeState;
 	}
 	
+	public boolean hasUpdatedThisTimeTick(){
+		return timeOfMostRecentUpdate == field.getCurrentTime();
+	}
+	
+	private void setTimeOfMostRecentUpdate(int time){
+		timeOfMostRecentUpdate = time;
+	}
 	
 }
