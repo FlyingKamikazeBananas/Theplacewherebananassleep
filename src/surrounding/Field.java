@@ -8,8 +8,6 @@ import coordination.Position;
 import nodebasis.Node;
 
 public class Field {
-
-	private static final int MAX_PLACEHOLDER = 0;
 	
 	private HashMap<Position, Node> nodeMap;
 	private boolean recentlyChangedNodeNetwork;
@@ -33,12 +31,11 @@ public class Field {
 		int signalStrength = nodeAtCentrum.getSignalStrength();
 		int centrumX = nodeAtCentrum.getPosition().getX();
 		int centrumY = nodeAtCentrum.getPosition().getY();
-		int minY = (0 < centrumY-signalStrength ? centrumY-signalStrength : 0);
-		int maxY = (MAX_PLACEHOLDER > centrumY+signalStrength ? MAX_PLACEHOLDER 
-				: centrumY+signalStrength); //change placeholder
+		int minYFromCentrum = (0 < centrumY-signalStrength ? centrumY-signalStrength : 0);
+		int maxYFromCentrum = centrumY+signalStrength;
 		int currentYOffset;
-		int currentMinX;
-		int currentMaxX;
+		int currentMinXFromCentrum;
+		int currentMaxXFromCentrum;
 		int boundsX;
 		ArrayList<Node> listToReturn = new ArrayList<Node>();
 		
@@ -46,16 +43,15 @@ public class Field {
 			Position mapPos = entry.getKey();
 			Node mapNode = entry.getValue();
 			
-			if(minY <= mapPos.getY() && mapPos.getY() <= maxY){
+			if(minYFromCentrum <= mapPos.getY() && mapPos.getY() <= maxYFromCentrum){
 				currentYOffset = Math.abs(centrumY-mapPos.getY());
 				boundsX = (int)Math.sqrt(Math.abs(Math.pow(signalStrength, 2)-
 						Math.pow(currentYOffset, 2))); 
-				currentMinX = (0 < centrumX-boundsX ? centrumX-boundsX : 0);
-				currentMaxX = (MAX_PLACEHOLDER > centrumX+boundsX ? MAX_PLACEHOLDER 
-						: centrumX+boundsX); //change placeholder
+				currentMinXFromCentrum = (0 < centrumX-boundsX ? centrumX-boundsX : 0);
+				currentMaxXFromCentrum = centrumX+boundsX;
 				
-				if((centrumX <= mapPos.getX() && mapPos.getX() <= currentMaxX) ||
-						(currentMinX <= mapPos.getX() && mapPos.getX() < centrumX)){
+				if((centrumX <= mapPos.getX() && mapPos.getX() <= currentMaxXFromCentrum) ||
+						(currentMinXFromCentrum <= mapPos.getX() && mapPos.getX() < centrumX)){
 					listToReturn.add(mapNode);
 				}
 			}
