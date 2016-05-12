@@ -13,10 +13,12 @@ public class Field {
 	
 	private HashMap<Position, Node> nodeMap;
 	private boolean recentlyChangedNodeNetwork;
+	private int currentTime;
 	
 	public Field(/*params*/){
 		recentlyChangedNodeNetwork = true;
 		nodeMap = new HashMap<Position, Node>();
+		setCurrentTime(0);
 		
 		update();
 		setRecentlyChangedNodeNetwork(false);
@@ -24,6 +26,7 @@ public class Field {
 	
 	protected void update(){
 		//do stuff
+		incrementCurrentTime();
 	}
 	
 	public ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
@@ -67,5 +70,17 @@ public class Field {
 	
 	private void setRecentlyChangedNodeNetwork(boolean recentlyChangedNodeNetwork){
 		this.recentlyChangedNodeNetwork = recentlyChangedNodeNetwork;
+	}
+	
+	private void setCurrentTime(int currentTime){
+		this.currentTime = currentTime;
+	}
+	
+	private void incrementCurrentTime(){
+		currentTime++;
+	}
+	
+	public int getCurrentTime(){
+		return currentTime;
 	}
 }
