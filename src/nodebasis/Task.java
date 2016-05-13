@@ -4,10 +4,12 @@ public class Task{
 
 	private Object dataObject;
 	private TaskAction action;
+	private int handleIndex;
 	
 	public Task(Object dataObject, TaskAction action){
 		this.dataObject = dataObject;
 		this.action = action;
+		handleIndex = 0;
 	}
 	
 	public Object getDataObject(){
@@ -18,6 +20,12 @@ public class Task{
 		return action;
 	}
 	
+	public void incrementIndex(){
+		handleIndex++;
+	}
 	
+	public int getHandleIntex(){
+		return handleIndex;
+	}
 	
 }

@@ -2,7 +2,8 @@ package nodebasis;
 
 public class ImplicitEvent{
 
-	private int id, distance;
+	private final int id;
+	private int distance;
 	private Node node;
 	
 	public ImplicitEvent(Event event){

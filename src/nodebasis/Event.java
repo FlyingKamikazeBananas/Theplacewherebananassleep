@@ -4,9 +4,9 @@ import coordination.Position;
 
 public class Event {
 	
-	private int id, time;
-	private Position position;
-	private Node node;
+	private final int id, time;
+	private final Position position;
+	private final Node node;
 	
 	public Event(int id, int time, Node node){
 		this.id = id;
