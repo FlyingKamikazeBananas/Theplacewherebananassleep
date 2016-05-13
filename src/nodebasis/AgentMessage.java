@@ -40,4 +40,15 @@ public class AgentMessage extends Message{
 	protected HashMap<Integer, ImplicitEvent> getRoutingMap(){
 		return routingMap;
 	}
+	
+	protected boolean hasVisitedNode(Node node){
+		if(node != null){
+			for(Entry<Integer, ImplicitEvent> entry : routingMap.entrySet()){
+				if(node.equals(entry.getValue().getNode())){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 }

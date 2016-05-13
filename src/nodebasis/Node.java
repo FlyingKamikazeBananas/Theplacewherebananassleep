@@ -41,6 +41,8 @@ public class Node {
 	public void update(){
 		Task currentTask;
 		Message message;
+		ArrayList<Task> failedTasks;
+		boolean successfulTask = false;
 		
 		if(field.getRecentlyChangedNodeNetwork()){
 			findNeighbours();
@@ -50,27 +52,63 @@ public class Node {
 			if(taskQueue.isEmpty()){
 				setNodeState(NodeState.READY);
 			}else{
-				currentTask = taskQueue.peek();
-				
-				switch(currentTask.getAction()){
-				case CREATE_AGENTMESSAGE:
-					message = new AgentMessage(this, 0, 0); //FIIXXXX
-					break;
-				case CREATE_REQUESTMESSAGE:
-					message = new RequestMessage(0, 0, 0);//FIIXXXX
-					break;
-				case HANDLE_AGENTMESSAGE:
-					message = (AgentMessage)currentTask.getDataObject();
-					update((AgentMessage)message);
-					break;
-				case HANDLE_REQUESTMESSAGE:
-					message = (RequestMessage)currentTask.getDataObject();
-					break;
+				failedTasks = new ArrayList<Task>(taskQueue.size());
+				while(!successfulTask && !taskQueue.isEmpty()){
+					currentTask = taskQueue.peek();
+					
+					switch(currentTask.getAction()){
+					case CREATE_AGENTMESSAGE:
+						message = new AgentMessage(this, 0, 0); //fix placeholder
+						//do more stuff
+						break;
+					case CREATE_REQUESTMESSAGE:
+						message = new RequestMessage(0, 0, 0);//fix placeholder
+						//do more stuff
+						break;
+					case HANDLE_AGENTMESSAGE:
+						message = (AgentMessage)currentTask.getDataObject();
+						if(currentTask.getHandleIntex() == 0){
+							((AgentMessage)message).update(this);
+							update((AgentMessage)message);
+						}
+						if(sendMessage((AgentMessage)message)){
+							taskQueue.remove();
+							successfulTask = true;
+							returnToTaskQueue(failedTasks);
+						}else{
+							failedTasks.add(taskQueue.remove());
+						}
+						break;
+					case HANDLE_REQUESTMESSAGE:
+						message = (RequestMessage)currentTask.getDataObject();
+						((RequestMessage)message).update(this);
+						
+						if(((RequestMessage)message).getReturnToSender()){
+							if(sendMessage(((RequestMessage)message).getReturnAddress(),
+									((RequestMessage)message))){
+								taskQueue.remove();
+								successfulTask = true;
+								returnToTaskQueue(failedTasks);
+							}else{
+								failedTasks.add(taskQueue.remove());
+							}
+						}else{
+							if(sendMessage((RequestMessage)message)){
+								taskQueue.remove();
+								successfulTask = true;
+								returnToTaskQueue(failedTasks);
+							}else{
+								failedTasks.add(taskQueue.remove());
+							}
+						}
+						break;
+					}
 				}
 				
-				setTimeOfMostRecentUpdate(field.getCurrentTime());
+				if(successfulTask){
+					setTimeOfMostRecentUpdate(field.getCurrentTime());
+				}
 			}
-			
 		}
 	}
 	
@@ -89,6 +127,49 @@ public class Node {
 				routingMap.put(entry.getKey(), entry.getValue());
 			}
 		}
+	}
+	
+	private void returnToTaskQueue(ArrayList<Task> taskList){
+		for(Task task : taskList){
+			taskQueue.add(task);
+		}
+	}
+	
+	private boolean sendMessage(RequestMessage message){
+		for(Node node : neighboursList){
+			if(sendMessage(node, message)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean sendMessage(AgentMessage message){
+		for(Node node : neighboursList){
+			if(sendMessage(node, message)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean sendMessage(Node node, RequestMessage message){
+		if(node.getNodeState() == NodeState.READY &&
+				!node.hasUpdatedThisTimeTick()){
+			node.generateNewTask(message);
+			return true;
+		}
+		return false;
+	}
+	
+	private boolean sendMessage(Node node, AgentMessage message){
+		if(node.getNodeState() == NodeState.READY &&
+				!node.hasUpdatedThisTimeTick() && 
+				!message.hasVisitedNode(node)){
+			node.generateNewTask(message);
+			return true;
+		}
+		return false;
 	}
 	
 	public Event generateNewEvent(int id, int time){
@@ -157,5 +238,39 @@ public class Node {
 	private void setTimeOfMostRecentUpdate(int time){
 		timeOfMostRecentUpdate = time;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((position == null) ? 0 : position.hashCode());
+		result = prime * result + signalStrength;
+		result = prime * result + timeOfMostRecentUpdate;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Node other = (Node) obj;
+		if (position == null) {
+			if (other.position != null)
+				return false;
+		} else if (!position.equals(other.position))
+			return false;
+		if (signalStrength != other.signalStrength)
+			return false;
+		if (timeOfMostRecentUpdate != other.timeOfMostRecentUpdate)
+			return false;
+		return true;
+	}
+	
+	
 	
 }
