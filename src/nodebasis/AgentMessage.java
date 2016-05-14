@@ -7,8 +7,8 @@ public class AgentMessage extends Message{
 	
 	private HashMap<Integer, ImplicitEvent> routingMap;
 	
-	public AgentMessage(Node node, int createdAtTime, int expireByTime){
-		super(createdAtTime, expireByTime);
+	public AgentMessage(Node node, int messageLife){
+		super(messageLife);
 		
 		HashMap<Integer, ImplicitEvent> nodeRoutingMap = node.getRoutingMap();
 		routingMap = new HashMap<Integer, ImplicitEvent>();

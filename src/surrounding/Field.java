@@ -18,7 +18,7 @@ public class Field {
 		nodeMap = new HashMap<Position, Node>();
 		setCurrentTime(0);
 		
-		update();
+		//update();
 		setRecentlyChangedNodeNetwork(false);
 	}
 	
