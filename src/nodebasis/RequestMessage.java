@@ -9,13 +9,17 @@ public class RequestMessage extends Message{
 	private Event event; //has to add some way for the
 						//originating node to retrieve the Event
 	private boolean returnToSender;
+	private int currentMessageLife;
+	private boolean isReturned;
 	
-	public RequestMessage(int addressedTo, int createdAtTime, int expireByTime){
-		super(createdAtTime, expireByTime);
+	public RequestMessage(int addressedTo, int messageLife) throws IllegalArgumentException{
+		super(messageLife);
 		this.addressedTo = addressedTo;
+		this.currentMessageLife = messageLife;
 		
 		routingStack = new Stack<Node>();
 		setReturnToSender(false);
+		setIsReturned(false);
 	}
 	
 	protected void update(Node node){
@@ -28,7 +32,13 @@ public class RequestMessage extends Message{
 			}catch(IllegalArgumentException e){
 				routingStack.push(node);
 			}
+		}else{
+			setIsReturned(node.equals(routingStack.peek()));
 		}
+	}
+	
+	protected int getAddressedTo(){
+		return addressedTo;
 	}
 	
 	protected boolean getReturnToSender(){
@@ -39,9 +49,64 @@ public class RequestMessage extends Message{
 		this.returnToSender = returnToSender;
 	}
 	
+	private void setIsReturned(boolean isReturned){
+		this.isReturned = isReturned;
+	}
+	
+	protected boolean getIsReturned(){
+		return isReturned;
+	}
+	
 	protected Node getReturnAddress(){
 		return routingStack.pop(); //maybe change to peek()
 								   //and increase supervision
 	}
+	
+	protected void resetCurrentMessageLife(){
+		currentMessageLife = super.getInitialMessageLife();
+	}
+	
+	protected Event getEvent() throws IllegalStateException{
+		if(getIsReturned()){
+			return event;
+		}else{
+			throw new IllegalStateException("the message has not yet been returned");
+		}
+	}
+	
+	@Override
+	protected int getCurrentMessageLife(){
+		return currentMessageLife;
+	}
+	
+	@Override
+	protected void decrementMessageLife(){
+		currentMessageLife--;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + addressedTo;
+		result = prime * result + currentMessageLife;
+		result = prime * result + (returnToSender ? 1231 : 1237);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RequestMessage other = (RequestMessage) obj;
+		if (addressedTo != other.addressedTo)
+			return false;
+		return true;
+	}
+	
 	
 }
