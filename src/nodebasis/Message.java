@@ -1,13 +1,13 @@
 package nodebasis;
 
-public abstract class Message{
+public abstract class Message implements Lifespan{
 	
-	private final int messageLife;
-	private int currentMessageLife;
+	private final int messageLifespan;
+	private int currentMessageLifespan;
 	
 	public Message(int messageLife) throws IllegalArgumentException{
 		if(messageLife > 0){
-			this.messageLife = this.currentMessageLife = messageLife;
+			this.messageLifespan = this.currentMessageLifespan = messageLife;
 		}else{
 			throw new IllegalArgumentException("message lifespan must be a natural number");
 		}
@@ -15,24 +15,22 @@ public abstract class Message{
 	
 	protected abstract void update(Node node);
 	
-	protected int getInitialMessageLife(){
-		return messageLife;
+	@Override
+	public void decrementLifespan(){
+		currentMessageLifespan--;
 	}
 	
-	protected int getCurrentMessageLife(){
-		return currentMessageLife;
-	}
-	
-	protected void decrementMessageLife(){
-		currentMessageLife--;
+	@Override
+	public boolean isDead(){
+		return currentMessageLifespan <= 0;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + currentMessageLife;
-		result = prime * result + messageLife;
+		result = prime * result + currentMessageLifespan;
+		result = prime * result + messageLifespan;
 		return result;
 	}
 
@@ -45,9 +43,9 @@ public abstract class Message{
 		if (getClass() != obj.getClass())
 			return false;
 		Message other = (Message) obj;
-		if (currentMessageLife != other.currentMessageLife)
+		if (currentMessageLifespan != other.currentMessageLifespan)
 			return false;
-		if (messageLife != other.messageLife)
+		if (messageLifespan != other.messageLifespan)
 			return false;
 		return true;
 	}

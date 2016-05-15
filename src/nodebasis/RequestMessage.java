@@ -5,17 +5,22 @@ import java.util.Stack;
 public class RequestMessage extends Message{
 	
 	private final int addressedTo;
+	private final int lifeSpan;
+	private final int requestId;
+	
 	private Stack<Node> routingStack;
-	private Event event; //has to add some way for the
-						//originating node to retrieve the Event
+	private Event event;
 	private boolean returnToSender;
 	private int currentMessageLife;
 	private boolean isReturned;
+	private Node lastRemoved;
 	
-	public RequestMessage(int addressedTo, int messageLife) throws IllegalArgumentException{
+	public RequestMessage(int addressedTo, int messageLife,
+			int requestId) throws IllegalArgumentException{
 		super(messageLife);
 		this.addressedTo = addressedTo;
-		this.currentMessageLife = messageLife;
+		this.lifeSpan = this.currentMessageLife = messageLife;
+		this.requestId = requestId;
 		
 		routingStack = new Stack<Node>();
 		setReturnToSender(false);
@@ -33,7 +38,8 @@ public class RequestMessage extends Message{
 				routingStack.push(node);
 			}
 		}else{
-			setIsReturned(node.equals(routingStack.peek()));
+			setIsReturned(routingStack.isEmpty() &&
+					node.equals(lastRemoved));
 		}
 	}
 	
@@ -58,12 +64,13 @@ public class RequestMessage extends Message{
 	}
 	
 	protected Node getReturnAddress(){
-		return routingStack.pop(); //maybe change to peek()
+		lastRemoved = routingStack.pop();
+		return lastRemoved; //maybe change to peek()
 								   //and increase supervision
 	}
 	
 	protected void resetCurrentMessageLife(){
-		currentMessageLife = super.getInitialMessageLife();
+		currentMessageLife = lifeSpan;
 	}
 	
 	protected Event getEvent() throws IllegalStateException{
@@ -75,13 +82,17 @@ public class RequestMessage extends Message{
 	}
 	
 	@Override
-	protected int getCurrentMessageLife(){
-		return currentMessageLife;
+	public boolean isDead(){
+		return currentMessageLife <= 0;
 	}
 	
 	@Override
-	protected void decrementMessageLife(){
+	public void decrementLifespan(){
 		currentMessageLife--;
+	}
+	
+	private int getCurrentLifespan(){
+		return currentMessageLife;
 	}
 
 	@Override
@@ -108,5 +119,17 @@ public class RequestMessage extends Message{
 		return true;
 	}
 	
+	/**
+	 * >0: this is greater than the other
+	 * 0: equals
+	 * <0: this is lower than the other
+	 * */
+	public int compareTo(RequestMessage message){
+		return this.getCurrentLifespan() - message.getCurrentLifespan();
+	}
+	
+	public int getRequestId(){
+		return requestId;
+	}
 	
 }
