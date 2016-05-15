@@ -5,23 +5,22 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Map.Entry;
 
 import surrounding.Field;
 import coordination.Position;
 
-//left to implement:
-//counter to keep track on time elapsed after
-//generated and send a request message
 
-public class Node {
-
+public class Node{
+	
 	private final int agentLife;
 	private final int requestLife;
 	
 	private PriorityQueue<Task> taskQueue;
 	private HashMap<Integer, ImplicitEvent> routingMap;
+	private HashMap<Integer, Request> requestMap;
 	private List<Event> eventList;
 	private List<Node> neighboursList;
 	private Position position;
@@ -47,6 +46,7 @@ public class Node {
 		eventList = new ArrayList<Event>();
 		neighboursList = new ArrayList<Node>();
 		routingMap = new HashMap<Integer, ImplicitEvent>();
+		requestMap = new HashMap<Integer, Request>();
 	}
 	
 	/**
@@ -54,12 +54,18 @@ public class Node {
 	 */
 	public void update(){
 		Task currentTask;
+		Request tempRequest;
 		Message message;
 		ArrayList<Task> failedTasks;
+		Iterator<Map.Entry<Integer, Request>> iterator;
 		boolean successfulTask = false;
 		
 		if(field.getRecentlyChangedNodeNetwork()){
 			findNeighbours();
+		}
+		
+		for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
+			entry.getValue().decrementLifespan();
 		}
 		
 		if(nodeState == NodeState.BUSY && !hasUpdatedThisTimeTick()){
@@ -83,7 +89,9 @@ public class Node {
 						break;
 					case CREATE_REQUESTMESSAGE:
 						message = new RequestMessage((Integer)currentTask.getDataObject(),
-								requestLife);
+								requestLife, field.getCurrentTime());
+						requestMap.put(((RequestMessage)message).getRequestId(),
+								new Request(8*requestLife));
 						taskQueue.remove();
 						if(sendMessage((RequestMessage)message)){
 							successfulTask = true;
@@ -113,23 +121,27 @@ public class Node {
 					case HANDLE_REQUESTMESSAGE:
 						message = (RequestMessage)currentTask.getDataObject();
 						((RequestMessage)message).update(this);
-						((RequestMessage)message).decrementMessageLife();
+						((RequestMessage)message).decrementLifespan();
 						
+						//request message is returned
 						if(((RequestMessage)message).getIsReturned()){
+							taskQueue.remove();
 							
-							//the event is returned
-							//was it on time?
-							//check and print
-							//((RequestMessage)message).getEvent();
-							
-						}else if(((RequestMessage)message).getCurrentMessageLife() <= 0){
+							//if it returned in time
+							//i.e. Node is still holding the request:
+							if(requestMap.containsKey(((RequestMessage)message)
+									.getRequestId())){
+								printEvent(((RequestMessage)message).getEvent());
+								requestMap.remove(((RequestMessage)message)
+									.getRequestId());
+							}
+						}else if(((RequestMessage)message).isDead()){
 							//message is past its life time
 							taskQueue.remove();
 						
 						//attempt to return to the sender (if needed),
 						//or add task to list if failed.
 						}else if(((RequestMessage)message).getReturnToSender()){
-							
 							if(sendMessage(((RequestMessage)message).getReturnAddress(),
 									((RequestMessage)message))){
 								((RequestMessage)message).resetCurrentMessageLife();
@@ -155,6 +167,18 @@ public class Node {
 				
 				if(successfulTask){
 					setTimeOfMostRecentUpdate(field.getCurrentTime());
+				}
+				
+				iterator = requestMap.entrySet().iterator();
+				while(iterator.hasNext()){
+					tempRequest = iterator.next().getValue();
+					if(tempRequest.isDead()){
+						if(tempRequest.numberOfTimesRevived() == 0){
+							tempRequest.reviveRequest();
+						}else{
+							iterator.remove();
+						}
+					}
 				}
 			}
 		}
@@ -213,7 +237,6 @@ public class Node {
 	}
 	
 	private boolean sendMessage(AgentMessage message){
-		ArrayList<Node> failedNodes = new ArrayList<Node>();
 		boolean visitedAll = true;
 		
 		//first check any of the adjacent nodes
@@ -224,15 +247,13 @@ public class Node {
 				if(sendMessage(node, message)){
 					return true;
 				}
-			}else{
-				failedNodes.add(node);
 			}
 		}
 		
 		//if ALL of the adjacent nodes already have been
 		//visited, then try to send back to one of them.
 		if(visitedAll){
-			for(Node node : failedNodes){
+			for(Node node : neighboursList){
 				if(sendMessage(node, message)){
 					return true;
 				}
@@ -277,59 +298,60 @@ public class Node {
 		setNodeState(NodeState.BUSY);
 	}
 	
-	protected void generateNewTask(Message message){
+	protected void generateNewTask(AgentMessage message){
+		taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
+		setNodeState(NodeState.BUSY);
+		setTimeOfMostRecentUpdate(field.getCurrentTime());
+	}
+	
+	protected void generateNewTask(RequestMessage message){
 		Iterator<Task> iterator;
 		Task currentTask;
 		boolean foundAlike = false;
+		iterator = taskQueue.iterator();
 		
-		if(message.getClass() == AgentMessage.class){
-			taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
-			setNodeState(NodeState.BUSY);
-			setTimeOfMostRecentUpdate(field.getCurrentTime());
-		}else if(message.getClass() == RequestMessage.class){
+		//manage if message of same type already exist;
+		//look at equals method in RequestMessage
+		while(iterator.hasNext()){
+			currentTask = iterator.next();
 			
-			iterator = taskQueue.iterator();
-			
-			//manage if message of same type already exist;
-			//look at equals method in RequestMessage
-			while(iterator.hasNext()){
-				currentTask = (Task)iterator.next();
-				if(((RequestMessage)message).equals(currentTask.getDataObject())){
+			//obviously have to check if any of the tasks actually
+			//consists of an instance of RequestMessage
+			if(message.equals(currentTask.getDataObject())){
+				
+				//if newly received message is on its way back and the currently
+				//held isn't, then replace.
+				if(message.getReturnToSender() && 
+							!((RequestMessage)currentTask.getDataObject()).getReturnToSender()){
+					iterator.remove();
+					taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
+					setNodeState(NodeState.BUSY);
+					setTimeOfMostRecentUpdate(field.getCurrentTime());
 					
-					//if newly received message is on its way back and the currently
-					//held isn't, then replace.
-					if(((RequestMessage)message).getReturnToSender() && 
-								!((RequestMessage)currentTask.getDataObject()).getReturnToSender()){
+				//if both are not, or if both are on their way back, then compare 
+				//current lives. the one with most lives is the one who gets to stay.
+				}else if((!message.getReturnToSender() && 
+						!((RequestMessage)currentTask.getDataObject()).getReturnToSender()) ||
+						(message.getReturnToSender() && 
+						((RequestMessage)currentTask.getDataObject()).getReturnToSender())){
+					if(message.compareTo(((RequestMessage)currentTask.getDataObject())) > 0){
 						iterator.remove();
 						taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
 						setNodeState(NodeState.BUSY);
 						setTimeOfMostRecentUpdate(field.getCurrentTime());
-						
-					//if both are not, or if both are on their way back, then compare 
-					//current lives. the one with most lives is the one who gets to stay.
-					}else if((!((RequestMessage)message).getReturnToSender() && 
-							!((RequestMessage)currentTask.getDataObject()).getReturnToSender()) ||
-							(((RequestMessage)message).getReturnToSender() && 
-							((RequestMessage)currentTask.getDataObject()).getReturnToSender())){
-						if(((RequestMessage)currentTask.getDataObject()).getCurrentMessageLife() <
-								((RequestMessage)message).getCurrentMessageLife()){
-							iterator.remove();
-							taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
-							setNodeState(NodeState.BUSY);
-							setTimeOfMostRecentUpdate(field.getCurrentTime());
-						}
 					}
-					foundAlike = true;
-					break;
 				}
-			}
-			
-			if(!foundAlike){
-				taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
-				setNodeState(NodeState.BUSY);
-				setTimeOfMostRecentUpdate(field.getCurrentTime());
+				foundAlike = true;
+				break;
 			}
 		}
+		
+		if(!foundAlike){
+			taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
+			setNodeState(NodeState.BUSY);
+			setTimeOfMostRecentUpdate(field.getCurrentTime());
+		}
+		
 		
 	}
 	
@@ -348,10 +370,6 @@ public class Node {
 			}
 		}
 		throw new IllegalArgumentException("event with id not found");
-	}
-	
-	protected boolean knowPathToEventById(Integer id){
-		return routingMap.containsKey(id);
 	}
 	
 	public int getSignalStrength(){
@@ -376,6 +394,16 @@ public class Node {
 	
 	private void setTimeOfMostRecentUpdate(int time){
 		timeOfMostRecentUpdate = time;
+	}
+	
+	private void printEvent(Event event){
+		System.out.println(this.toString()
+				+ " received event details."
+				+ " x:" + event.getPosition().getX() 
+				+ "; y:" + event.getPosition().getY()
+				+ ", " + event.getTime()
+				+ ", " + event.getId()
+				+ "\n");
 	}
 
 	@Override
@@ -409,7 +437,4 @@ public class Node {
 			return false;
 		return true;
 	}
-	
-	
-	
 }

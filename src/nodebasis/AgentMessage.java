@@ -3,15 +3,19 @@ package nodebasis;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import coordination.Position;
+
 public class AgentMessage extends Message{
 	
 	private HashMap<Integer, ImplicitEvent> routingMap;
+	private HashMap<Position, Node> visitedNodes;
 	
 	public AgentMessage(Node node, int messageLife){
 		super(messageLife);
 		
 		HashMap<Integer, ImplicitEvent> nodeRoutingMap = node.getRoutingMap();
 		routingMap = new HashMap<Integer, ImplicitEvent>();
+		visitedNodes = new HashMap<Position, Node>();
 		
 		for(Entry<Integer, ImplicitEvent> entry : nodeRoutingMap.entrySet()){
 			routingMap.put(entry.getKey(), entry.getValue());
@@ -35,6 +39,8 @@ public class AgentMessage extends Message{
 				routingMap.put(entry.getKey(), new ImplicitEvent(id, distance+1, node));
 			}
 		}
+		
+		visitedNodes.put(node.getPosition(), node);
 	}
 	
 	protected HashMap<Integer, ImplicitEvent> getRoutingMap(){
@@ -43,11 +49,7 @@ public class AgentMessage extends Message{
 	
 	protected boolean hasVisitedNode(Node node){
 		if(node != null){
-			for(Entry<Integer, ImplicitEvent> entry : routingMap.entrySet()){
-				if(node.equals(entry.getValue().getNode())){
-					return true;
-				}
-			}
+			return visitedNodes.containsValue(node);
 		}
 		return false;
 	}
