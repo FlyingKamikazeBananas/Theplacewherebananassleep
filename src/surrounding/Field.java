@@ -49,66 +49,66 @@ public class Field {
 	protected void update(){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
-	    Event event;
-	    if(updateLimit >= getCurrentTime()) {
-	    	while (iterator.hasNext()) {
-	            tempNode = iterator.next().getValue();
-	            if (shouldGenerateNewEvent()) {
-	                event = tempNode.generateNewEvent(newEventId(),
-	                		getCurrentTime());
-	                if (shouldGenerateNewAgentMsg()) {
-	                    tempNode.generateNewTask(event);
-	                }
-	            }
-	            tempNode.update();
-	        }
-	        if(shouldGenerateNewRequests()){
-	            for(Node node : requestNodesList){
-	            	node.generateNewTask(random.nextInt(eventId));
-	            }
-	        }
-	    }
-	    incrementCurrentTime();
+		Event event;
+		if(updateLimit >= getCurrentTime()) {
+			while (iterator.hasNext()) {
+				tempNode = iterator.next().getValue();
+				if(shouldGenerateNewEvent()){
+					event = tempNode.generateNewEvent(newEventId(),
+							getCurrentTime());
+					if(shouldGenerateNewAgentMsg()){
+						tempNode.generateNewTask(event);
+					}
+				}
+				tempNode.update();
+			}
+			if(shouldGenerateNewRequests()){
+				for(Node node : requestNodesList){
+					node.generateNewTask(random.nextInt(eventId));
+				}
+			}
+		}
+		incrementCurrentTime();
 	}
 
 	private void createRequestNodesList(){
 		List<Integer> list = new ArrayList<Integer>(numberOfRequestNodes);
-        int temp;
-        int index;
-        for(int i=0; i<numberOfRequestNodes; i++){
-            temp = random.nextInt(nodeMap.size());
-            if(list.contains(temp)){
-                i--;
-            }else{
-                ((ArrayList<Integer>)list).add(temp);
-            }
-        }
+		int temp;
+		int index;
+		for(int i=0; i<numberOfRequestNodes; i++){
+			temp = random.nextInt(nodeMap.size());
+			if(list.contains(temp)){
+				i--;
+			}else{
+				((ArrayList<Integer>)list).add(temp);
+			}
+		}
         
-        index = 0;
-        for(Map.Entry<Position, Node> entry : nodeMap.entrySet()){
-            if(list.contains(index)){
-                ((ArrayList<Node>)requestNodesList).add(entry.getValue());
-            }
-            index++;
-        }
+		index = 0;
+		for(Map.Entry<Position, Node> entry : nodeMap.entrySet()){
+			if(list.contains(index)){
+				((ArrayList<Node>)requestNodesList).add(entry.getValue());
+			}
+			index++;
+		}
 	}
 	
 	private int newEventId(){
-        eventId++;
-        return eventId;
-    }
+		eventId++;
+		return eventId;
+	}
 	
-    private boolean shouldGenerateNewEvent(){
-        return random.nextInt(eventChanceRange) == 0;
-    }
+	private boolean shouldGenerateNewEvent(){
+		return random.nextInt(eventChanceRange) == 0;
+	}
+	
+	private boolean shouldGenerateNewAgentMsg(){
+		return random.nextInt(agentChanceRange) == 0;
+	}
     
-    private boolean shouldGenerateNewAgentMsg(){
-        return random.nextInt(agentChanceRange) == 0;
-    }
-    
-    private boolean shouldGenerateNewRequests(){
-        return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
-    }
+	private boolean shouldGenerateNewRequests(){
+		return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
+	}
 	
 	public void loadNodeNetwork(HashMap<Position, Node> nodeMap){
 		if(!hasLoadedNodeNetwork){
