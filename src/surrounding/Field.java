@@ -46,10 +46,11 @@ public class Field {
 		eventId = 0;
 	}
 	
-	protected void update(){
+	protected void update(FieldRunner runner){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
 		Event event;
+		//System.out.println("Time: " + getCurrentTime() + "; size: " + nodeMap.size());
 		if(updateLimit >= getCurrentTime()) {
 			while (iterator.hasNext()) {
 				tempNode = iterator.next().getValue();
@@ -67,8 +68,11 @@ public class Field {
 					node.generateNewTask(random.nextInt(eventId));
 				}
 			}
+			incrementCurrentTime();
+		}else{
+			runner.shutDown();
 		}
-		incrementCurrentTime();
+		
 	}
 
 	private void createRequestNodesList(){
@@ -107,6 +111,7 @@ public class Field {
 	}
     
 	private boolean shouldGenerateNewRequests(){
+		
 		return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
 	}
 	

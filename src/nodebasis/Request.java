@@ -20,7 +20,7 @@ public class Request implements Lifespan{
 
 	@Override
 	public boolean isDead() {
-		return currentRequestLifespan <= 0;
+		return currentRequestLifespan < 0;
 	}
 	
 	public void reviveRequest(){
@@ -30,6 +30,10 @@ public class Request implements Lifespan{
 	
 	public int getNumberOfTimesRevived(){
 		return numberOfTimesRevived;
+	}
+	
+	public int getLife(){
+		return currentRequestLifespan;
 	}
 	
 }

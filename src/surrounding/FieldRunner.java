@@ -31,7 +31,7 @@ public class FieldRunner extends Thread{
 		}else{
 			while(isRunning){
 				while(System.nanoTime() > lastUpdateTime){
-					field.update();
+					field.update(this);
 					lastUpdateTime += updateMargin;
 				}
 			}

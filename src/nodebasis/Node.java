@@ -12,6 +12,8 @@ import java.util.Map.Entry;
 import surrounding.Field;
 import coordination.Position;
 
+//behöver snyggas upp
+
 public class Node{
 	
 	private final int agentLife;
@@ -61,6 +63,7 @@ public class Node{
 		
 		for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
 			entry.getValue().decrementLifespan();
+			//System.out.println(entry.getValue().getLife());
 		}
 		
 		if(nodeState == NodeState.BUSY && !hasUpdatedThisTimeTick()){
@@ -73,6 +76,7 @@ public class Node{
 					
 					switch(currentTask.getAction()){
 					case CREATE_AGENTMESSAGE:
+						//System.out.println("Skapa agent, time: " + field.getCurrentTime());
 						message = new AgentMessage(this, agentLife);
 						taskQueue.remove();
 						if(sendMessage((AgentMessage)message)){
@@ -83,10 +87,11 @@ public class Node{
 						}
 						break;
 					case CREATE_REQUESTMESSAGE:
+						//System.out.println("Skapa request, time: " + field.getCurrentTime());
 						message = new RequestMessage((Integer)currentTask.getDataObject(),
-								requestLife, field.getCurrentTime());
+								requestLife, field.getCurrentTime(), this);
 						requestMap.put(((RequestMessage)message).getRequestId(),
-								new Request(8*requestLife));
+								new Request(requestLife*8));
 						taskQueue.remove();
 						if(sendMessage((RequestMessage)message)){
 							successfulTask = true;
@@ -96,6 +101,7 @@ public class Node{
 						}
 						break;
 					case HANDLE_AGENTMESSAGE:
+						//System.out.println(this.toString() + "; Hantera agent, time: " + field.getCurrentTime());
 						message = (AgentMessage)currentTask.getDataObject();
 						
 						//if hasn't yet updated the message
@@ -103,10 +109,13 @@ public class Node{
 						if(currentTask.getHandleIntex() == 0){
 							((AgentMessage)message).update(this);
 							update((AgentMessage)message);
+							((AgentMessage)message).decrementLifespan();
 						}
 						
 						//attempt to send message or add the task to a list
-						if(sendMessage((AgentMessage)message)){
+						if(((AgentMessage)message).isDead()){
+							taskQueue.remove();
+						}else if(sendMessage((AgentMessage)message)){
 							taskQueue.remove();
 							successfulTask = true;
 						}else{
@@ -114,19 +123,28 @@ public class Node{
 						}
 						break;
 					case HANDLE_REQUESTMESSAGE:
+						//System.out.println("Hantera request, time: " + field.getCurrentTime());
 						message = (RequestMessage)currentTask.getDataObject();
-						((RequestMessage)message).update(this);
-						((RequestMessage)message).decrementLifespan();
+						
+						if(currentTask.getHandleIntex() == 0){
+							((RequestMessage)message).update(this);
+							((RequestMessage)message).decrementLifespan();
+						}
 						
 						//request message is returned
 						if(((RequestMessage)message).getIsReturned()){
 							taskQueue.remove();
-							
 							//if it returned in time
 							//i.e. Node is still holding the request:
+							
+							/*for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
+								System.out.println(entry.getKey() + " == " + ((RequestMessage)message).getRequestId());
+							}*/
+							
 							if(requestMap.containsKey(((RequestMessage)message)
 									.getRequestId())){
-								printEvent(((RequestMessage)message).getEvent());
+								printEvent(((RequestMessage)message).getEvent(),
+										(RequestMessage)message);
 								requestMap.remove(((RequestMessage)message)
 									.getRequestId());
 							}
@@ -172,6 +190,7 @@ public class Node{
 							tempRequest.reviveRequest();
 						}else{
 							iterator.remove();
+							//System.out.println("DIED");
 						}
 					}
 				}
@@ -210,6 +229,7 @@ public class Node{
 	
 	private boolean sendMessage(RequestMessage message){
 		Node legitNode;
+		boolean visitedAll = true;
 		
 		//first check routingMap for path.
 		if(routingMap.containsKey(message.getAddressedTo())){
@@ -222,12 +242,27 @@ public class Node{
 			}
 		}
 		
-		//if didn't find in routingMap, then try random.
+		//first check any of the adjacent nodes
+		//which hasn't yet been visited by the message.
 		for(Node node : neighboursList){
-			if(sendMessage(node, message)){
-				return true;
+			if(!message.hasVisitedNode(node)){
+				visitedAll = false;
+				if(sendMessage(node, message)){
+					return true;
+				}
 			}
 		}
+		
+		//if ALL of the adjacent nodes already have been
+		//visited, then try to send back to one of them.
+		if(visitedAll){
+			for(Node node : neighboursList){
+				if(sendMessage(node, message)){
+					return true;
+				}
+			}
+		}
+		
 		return false;
 	}
 	
@@ -263,6 +298,7 @@ public class Node{
 		if(node.getNodeState() == NodeState.READY &&
 				!node.hasUpdatedThisTimeTick()){
 			node.generateNewTask(message);
+			message.resetCurrentMessageLife();
 			return true;
 		}
 		return false;
@@ -346,8 +382,6 @@ public class Node{
 			setNodeState(NodeState.BUSY);
 			setTimeOfMostRecentUpdate(field.getCurrentTime());
 		}
-		
-		
 	}
 	
 	protected NodeState getNodeState(){
@@ -393,13 +427,15 @@ public class Node{
 		timeOfMostRecentUpdate = time;
 	}
 	
-	private void printEvent(Event event){
-		System.out.println(this.toString()
-				+ " received event details."
+	private void printEvent(Event event, RequestMessage message){
+		System.out.println(field.getCurrentTime() 
+				+ ": " + this.toString()
+				+ " received event details from request sent at "
+				+ message.getTimeOfCreation() + " --"
 				+ " x:" + event.getPosition().getX() 
 				+ "; y:" + event.getPosition().getY()
-				+ ", " + event.getTime()
-				+ ", " + event.getId()
+				+ ", time: " + event.getTime()
+				+ ", id: " + event.getId()
 				+ "\n");
 	}
 	
