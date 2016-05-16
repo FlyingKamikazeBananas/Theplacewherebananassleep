@@ -12,7 +12,6 @@ import java.util.Map.Entry;
 import surrounding.Field;
 import coordination.Position;
 
-
 public class Node{
 	
 	private final int agentLife;
@@ -38,7 +37,7 @@ public class Node{
 		this.signalStrength = signalStrength;
 		this.agentLife = agentLife;
 		this.requestLife = requestLife;
-		
+	
 		nodeState = NodeState.READY;
 		timeOfMostRecentUpdate = 0;
 		
@@ -173,7 +172,7 @@ public class Node{
 				while(iterator.hasNext()){
 					tempRequest = iterator.next().getValue();
 					if(tempRequest.isDead()){
-						if(tempRequest.numberOfTimesRevived() == 0){
+						if(tempRequest.getNumberOfTimesRevived() == 0){
 							tempRequest.reviveRequest();
 						}else{
 							iterator.remove();
@@ -208,6 +207,7 @@ public class Node{
 	
 	private void returnToTaskQueue(ArrayList<Task> taskList){
 		for(Task task : taskList){
+			task.incrementIndex();
 			taskQueue.add(task);
 		}
 	}
@@ -231,7 +231,6 @@ public class Node{
 			if(sendMessage(node, message)){
 				return true;
 			}
-			
 		}
 		return false;
 	}
@@ -298,13 +297,13 @@ public class Node{
 		setNodeState(NodeState.BUSY);
 	}
 	
-	protected void generateNewTask(AgentMessage message){
+	private void generateNewTask(AgentMessage message){
 		taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
 		setNodeState(NodeState.BUSY);
 		setTimeOfMostRecentUpdate(field.getCurrentTime());
 	}
 	
-	protected void generateNewTask(RequestMessage message){
+	private void generateNewTask(RequestMessage message){
 		Iterator<Task> iterator;
 		Task currentTask;
 		boolean foundAlike = false;
@@ -388,7 +387,7 @@ public class Node{
 		this.nodeState = nodeState;
 	}
 	
-	public boolean hasUpdatedThisTimeTick(){
+	protected boolean hasUpdatedThisTimeTick(){
 		return timeOfMostRecentUpdate == field.getCurrentTime();
 	}
 	

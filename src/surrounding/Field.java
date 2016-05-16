@@ -12,12 +12,15 @@ public class Field {
 	private HashMap<Position, Node> nodeMap;
 	private boolean recentlyChangedNodeNetwork;
 	private int currentTime;
+	private boolean hasLoadedNodeNetwork;
 	
-	public Field(/*params*/){
+	public Field(int updateLimit, int eventChanceRange, 
+			int agentChanceRange, int requestChanceRange,
+			int numberOfRequestNodes){
 		recentlyChangedNodeNetwork = true;
 		nodeMap = new HashMap<Position, Node>();
 		setCurrentTime(0);
-		
+		hasLoadedNodeNetwork = false;
 		//update();
 		setRecentlyChangedNodeNetwork(false);
 	}
@@ -25,6 +28,13 @@ public class Field {
 	protected void update(){
 		//do stuff
 		incrementCurrentTime();
+	}
+	
+	public void loadNodeNetwork(HashMap<Position, Node> nodeMap){
+		if(!hasLoadedNodeNetwork){
+			this.nodeMap = nodeMap;
+			hasLoadedNodeNetwork = true;
+		}
 	}
 	
 	public ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
@@ -78,5 +88,9 @@ public class Field {
 	
 	public int getCurrentTime(){
 		return currentTime;
+	}
+	
+	public boolean getHasLoadedNodeNetwork(){
+		return hasLoadedNodeNetwork;
 	}
 }

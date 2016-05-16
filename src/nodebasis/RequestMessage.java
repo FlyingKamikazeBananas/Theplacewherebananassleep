@@ -116,6 +116,8 @@ public class RequestMessage extends Message{
 		RequestMessage other = (RequestMessage) obj;
 		if (addressedTo != other.addressedTo)
 			return false;
+		if (getOriginNode() != other.getOriginNode())
+			return false;
 		return true;
 	}
 	
@@ -130,6 +132,10 @@ public class RequestMessage extends Message{
 	
 	public int getRequestId(){
 		return requestId;
+	}
+	
+	private Node getOriginNode(){
+		return routingStack.lastElement();
 	}
 	
 }
