@@ -1,30 +1,43 @@
 package nodebasis;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
+
+import coordination.Position;
+
+//Behöver snyggas upp
+//säkrare användning av routingStack
 
 public class RequestMessage extends Message{
 	
 	private final int addressedTo;
 	private final int lifeSpan;
 	private final int requestId;
+	private final int timeOfCreation;
+	private final Node originatingNode;
 	
 	private Stack<Node> routingStack;
+	private Map<Position, Node> visitedNodes;
 	private Event event;
 	private boolean returnToSender;
 	private int currentMessageLife;
 	private boolean isReturned;
-	private Node lastRemoved;
 	
 	public RequestMessage(int addressedTo, int messageLife,
-			int requestId) throws IllegalArgumentException{
+			int timeOfCreation, Node originatingNode) throws IllegalArgumentException{
 		super(messageLife);
 		this.addressedTo = addressedTo;
 		this.lifeSpan = this.currentMessageLife = messageLife;
-		this.requestId = requestId;
+		this.timeOfCreation = this.requestId = timeOfCreation;
+		this.originatingNode = originatingNode;
 		
 		routingStack = new Stack<Node>();
+		visitedNodes = new HashMap<Position, Node>();
 		setReturnToSender(false);
 		setIsReturned(false);
+		
+		routingStack.push(originatingNode);
 	}
 	
 	protected void update(Node node){
@@ -35,12 +48,18 @@ public class RequestMessage extends Message{
 				this.event = event;
 				setReturnToSender(true);
 			}catch(IllegalArgumentException e){
+				visitedNodes.put(node.getPosition(), node);
 				routingStack.push(node);
 			}
 		}else{
-			setIsReturned(routingStack.isEmpty() &&
-					node.equals(lastRemoved));
+			routingStack.pop();
+			setIsReturned(getReturnToSender() &&
+					node.equals(originatingNode));
 		}
+	}
+	
+	protected boolean hasVisitedNode(Node node){
+		return visitedNodes.containsValue(node);
 	}
 	
 	protected int getAddressedTo(){
@@ -64,13 +83,15 @@ public class RequestMessage extends Message{
 	}
 	
 	protected Node getReturnAddress(){
-		lastRemoved = routingStack.pop();
-		return lastRemoved; //maybe change to peek()
-								   //and increase supervision
+		return routingStack.peek();
 	}
 	
 	protected void resetCurrentMessageLife(){
 		currentMessageLife = lifeSpan;
+	}
+	
+	protected int getTimeOfCreation(){
+		return timeOfCreation;
 	}
 	
 	protected Event getEvent() throws IllegalStateException{
@@ -118,6 +139,9 @@ public class RequestMessage extends Message{
 			return false;
 		if (getOriginNode() != other.getOriginNode())
 			return false;
+		if (getTimeOfCreation() != other.getTimeOfCreation()){
+			return false;
+		}
 		return true;
 	}
 	
