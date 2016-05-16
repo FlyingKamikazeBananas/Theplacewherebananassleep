@@ -28,7 +28,7 @@ public class Request implements Lifespan{
 		numberOfTimesRevived++;
 	}
 	
-	public int numberOfTimesRevived(){
+	public int getNumberOfTimesRevived(){
 		return numberOfTimesRevived;
 	}
 	

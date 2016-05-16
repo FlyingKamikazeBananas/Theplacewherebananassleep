@@ -2,7 +2,7 @@ package coordination;
 
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
-public class Position {
+public class Position{
 
 	private final int x, y;
 	
