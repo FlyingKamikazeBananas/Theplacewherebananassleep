@@ -59,10 +59,6 @@ public class Node{
 		Iterator<Map.Entry<Integer, Request>> iterator;
 		boolean successfulTask = false;
 		
-		if(field.getRecentlyChangedNodeNetwork()){
-			findNeighbours();
-		}
-		
 		for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
 			entry.getValue().decrementLifespan();
 		}
@@ -379,8 +375,10 @@ public class Node{
 		return position;
 	}
 	
-	private void findNeighbours(){
-		neighboursList = field.getNodesWithinRangeofNode(this);
+	public void updateNeighbours(){
+		if(field.getRecentlyChangedNodeNetwork()){
+			neighboursList = field.getNodesWithinRangeofNode(this);
+		}
 	}
 	
 	private void setNodeState(NodeState nodeState){
@@ -404,7 +402,7 @@ public class Node{
 				+ ", " + event.getId()
 				+ "\n");
 	}
-
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
