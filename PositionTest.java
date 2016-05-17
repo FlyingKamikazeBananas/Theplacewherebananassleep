@@ -41,8 +41,8 @@ public class PositionTest {
         
         
         -- Glöm inte att kolla följande fall:
-            # bjektet som jämförs är null,
-            # objektet som jämförs är av samma instans,
+            # objektet som jämförs med Position är null,
+            # objektet som jämförs med Position är av samma instans.
             
             
         -- differentHashCodesShouldNotEqual() är som vi nämnde under gruppträffen
