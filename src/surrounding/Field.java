@@ -23,34 +23,42 @@ public class Field {
 	
 	private HashMap<Position, Node> nodeMap;
 	private List<Node> requestNodesList;
-	private boolean recentlyChangedNodeNetwork;
-	private int currentTime, eventId;
+	private volatile boolean recentlyChangedNodeNetwork;
+	private volatile int currentTime;
+	private int eventId;
 	private boolean hasLoadedNodeNetwork;
 	
 	public Field(int updateLimit, int eventChanceRange, 
 			int agentChanceRange, int requestIntervalRange,
-			int numberOfRequestNodes){
-		this.updateLimit = updateLimit;
-		this.eventChanceRange = eventChanceRange;
-		this.agentChanceRange = agentChanceRange;
-		this.requestIntervalRange = requestIntervalRange;
-		this.numberOfRequestNodes = numberOfRequestNodes;
-		
-		random = new Random();
-		nodeMap = new HashMap<Position, Node>();
-		requestNodesList = new ArrayList<Node>(numberOfRequestNodes);
-		
-		setRecentlyChangedNodeNetwork(false);
-		setCurrentTime(0);
-		hasLoadedNodeNetwork = false;
-		eventId = 0;
+			int numberOfRequestNodes) throws IllegalArgumentException{
+		if(updateLimit <= 0 || eventChanceRange <= 0 ||
+				agentChanceRange <= 0 || requestIntervalRange <= 0 ||
+				numberOfRequestNodes <= 0){
+			throw new IllegalArgumentException("Field params must be"
+					+ " natural numbers");
+		}else{
+			this.updateLimit = updateLimit;
+			this.eventChanceRange = eventChanceRange;
+			this.agentChanceRange = agentChanceRange;
+			this.requestIntervalRange = requestIntervalRange;
+			this.numberOfRequestNodes = numberOfRequestNodes;
+			
+			random = new Random();
+			nodeMap = new HashMap<Position, Node>();
+			requestNodesList = new ArrayList<Node>(numberOfRequestNodes);
+			
+			setRecentlyChangedNodeNetwork(false);
+			setCurrentTime(0);
+			hasLoadedNodeNetwork = false;
+			eventId = 0;
+		}
 	}
 	
-	protected void update(FieldRunner runner){
+	protected synchronized void update(FieldRunner runner){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
 		Event event;
-		//System.out.println("Time: " + getCurrentTime() + "; size: " + nodeMap.size());
+		
 		if(updateLimit >= getCurrentTime()) {
 			while (iterator.hasNext()) {
 				tempNode = iterator.next().getValue();
@@ -72,7 +80,6 @@ public class Field {
 		}else{
 			runner.shutDown();
 		}
-		
 	}
 
 	private void createRequestNodesList(){
@@ -133,7 +140,12 @@ public class Field {
 		}
 	}
 	
-	public ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
+	/*
+	 * Rather heavy operation.
+	 * Should only use on nodes when necessary during
+	 * live simulation. 
+	 * */
+	public synchronized ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
 		int signalStrength = nodeAtCentrum.getSignalStrength();
 		int centrumX = nodeAtCentrum.getPosition().getX();
 		int centrumY = nodeAtCentrum.getPosition().getY();
@@ -167,7 +179,7 @@ public class Field {
 	}
 	
 
-	public int getCurrentTime(){
+	public synchronized int getCurrentTime(){
 		return currentTime;
 	}
 	
@@ -175,8 +187,16 @@ public class Field {
 		return hasLoadedNodeNetwork;
 	}
 	
-	public boolean getRecentlyChangedNodeNetwork(){
+	public synchronized boolean getRecentlyChangedNodeNetwork(){
 		return recentlyChangedNodeNetwork;
+	}
+	
+	public String getStringRepresentation(){
+		String representation = "";
+		for(Map.Entry<Position, Node> entry : nodeMap.entrySet()){
+			representation += entry.getValue().getStringRepresentation() + "\n";
+		}
+		return representation;
 	}
 	
 	private void setRecentlyChangedNodeNetwork(boolean recentlyChangedNodeNetwork){

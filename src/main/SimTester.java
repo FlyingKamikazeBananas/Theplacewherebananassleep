@@ -2,8 +2,7 @@ package main;
 
 import surrounding.Field;
 import surrounding.FieldRunner;
-import surrounding.NodeNetworkGenerator;
-import surrounding.SimTestNodeNetworkGenerator;
+import surrounding.StandardNodeNetworkGenerator;
 
 public class SimTester{
 
@@ -24,7 +23,9 @@ public class SimTester{
 		Field field = new Field(num_of_iterations, event_chance_range,
 				event_to_agent_chance_range, request_timestep_interval,
 				request_node_count);
-		field.loadNodeNetwork(new SimTestNodeNetworkGenerator(field).generate());
+		field.loadNodeNetwork(new StandardNodeNetworkGenerator(node_count_x,
+				node_count_y, node_distance, node_signal_strength,
+				request_life, agent_life, field).generate());
 		new FieldRunner(field).start();
 	}
 }

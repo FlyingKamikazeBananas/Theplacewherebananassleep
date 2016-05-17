@@ -439,6 +439,14 @@ public class Node{
 				+ "\n");
 	}
 	
+	public String getStringRepresentation(){
+		return getPosition().getX()
+				+ ";" + getPosition().getY()
+				+ ";" + getSignalStrength()
+				+ ";" + agentLife
+				+ ";" + requestLife;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
