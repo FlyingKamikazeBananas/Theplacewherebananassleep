@@ -32,7 +32,7 @@ public class PositionTest {
         
             Position position = new Position(x, y);
             AnotherObject another = new AnotherObject();
-            Assert.assertFalse(position.equals() && another.equals(position));
+            Assert.assertFalse(position.equals(another) && another.equals(position));
             
         
         -- Använd helst andra variabelnamn än de ni använt. Dvs exempel 'position'
