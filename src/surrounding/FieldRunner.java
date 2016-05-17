@@ -2,7 +2,7 @@ package surrounding;
 
 public class FieldRunner extends Thread{
 	
-	private static final int DEFAULT_UPDATES_PER_SECOND = 1000;
+	public static final int DEFAULT_UPDATES_PER_SECOND = 1000;
 	
 	private volatile boolean isRunning = true;
 	private final int updateMargin;
@@ -38,7 +38,7 @@ public class FieldRunner extends Thread{
 		}
 	}
 	
-	public void shutDown(){
+	public synchronized void shutDown(){
 		isRunning = false;
 	}
 }
