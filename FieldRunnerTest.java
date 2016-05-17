@@ -14,6 +14,10 @@ import static org.junit.Assert.*;
 public class FieldRunnerTest {
 
 
+    /*
+        Se PositionTest.java för kommentarer.
+    */
+
     @Test(expected = IllegalArgumentException.class)
     public void testFieldRunner() {
 
