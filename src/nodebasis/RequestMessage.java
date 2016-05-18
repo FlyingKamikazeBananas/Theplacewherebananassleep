@@ -43,11 +43,11 @@ public class RequestMessage extends Message{
 	protected void update(Node node){
 		Event event;
 		if(!getReturnToSender()){
-			try{
-				event = node.getEventById(addressedTo);
+			event = node.getEventById(addressedTo);
+			if(event != null){
 				this.event = event;
 				setReturnToSender(true);
-			}catch(IllegalArgumentException e){
+			}else{
 				visitedNodes.put(node.getPosition(), node);
 				routingStack.push(node);
 			}
