@@ -36,6 +36,14 @@ public class JUnitNodeTest {
 
     }
     //Fungerar ej, osäkra på hur vi ska implementera.
+    
+    /*
+     Ni behöver inte skapa ett nodnätverk; ni behöver heller inte skapa en
+     FieldRunner och starta denna - ni ska dessutom stoppa tråden när ni är klar med den.
+     
+     Nodens uppdateringsmetod är publik, det är även generateNewEvent, generateNewTask(Event)
+     och generateNewTask(Integer). De senare två av dessa gör att Noden blir "uppdaterad". Utnyttja detta.
+    */
     @Test
     public void nodeDifferentTimeOfRecentUpdateShouldNotBeEqual() {
         Field testField1 = new Field(10,1,1,1,1);
