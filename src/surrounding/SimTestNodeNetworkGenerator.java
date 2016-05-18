@@ -9,6 +9,13 @@ import coordination.Position;
 
 public class SimTestNodeNetworkGenerator implements NodeNetworkGenerator{
 
+	public static final int request_life = 45;
+	public static final int agent_life = 50;
+	public static final int node_signal_strength = 15;
+	public static final int node_distance = 10;
+	public static final int node_count_x = 50;
+	public static final int node_count_y = 50;
+	
 	private Field field;
 	private Map<Position, Node> map;
 	
@@ -23,14 +30,14 @@ public class SimTestNodeNetworkGenerator implements NodeNetworkGenerator{
 		Position tempPosition;
 		
 		if(map.isEmpty()){
-			for(int y=0; y<SimTester.node_count_y; y++){
-				for(int x=0; x<SimTester.node_count_x; x++){
-					tempPosition = new Position(x*SimTester.node_distance, 
-							y*SimTester.node_distance);
+			for(int y=0; y<node_count_y; y++){
+				for(int x=0; x<node_count_x; x++){
+					tempPosition = new Position(x*node_distance, 
+							y*node_distance);
 					tempNode = new Node(field, tempPosition,
-							SimTester.node_signal_strength,
-							SimTester.request_life,
-							SimTester.agent_life);
+							node_signal_strength,
+							request_life,
+							agent_life);
 					map.put(tempPosition, tempNode);
 				}
 			}

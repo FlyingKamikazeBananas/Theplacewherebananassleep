@@ -63,8 +63,7 @@ public class Field {
 			while (iterator.hasNext()) {
 				tempNode = iterator.next().getValue();
 				if(shouldGenerateNewEvent()){
-					event = tempNode.generateNewEvent(newEventId(),
-							getCurrentTime());
+					event = tempNode.generateNewEvent(newEventId());
 					if(shouldGenerateNewAgentMsg()){
 						tempNode.generateNewTask(event);
 					}
@@ -174,6 +173,8 @@ public class Field {
 				}
 			}
 		}
+		
+		listToReturn.remove(nodeAtCentrum);
 		
 		return listToReturn;
 	}

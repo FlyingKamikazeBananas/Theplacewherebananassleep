@@ -20,9 +20,9 @@ public class Node{
 	private final int requestLife;
 	
 	private PriorityQueue<Task> taskQueue;
-	private HashMap<Integer, ImplicitEvent> routingMap;
-	private HashMap<Integer, Request> requestMap;
-	private List<Event> eventList;
+	private Map<Integer, ImplicitEvent> routingMap;
+	private Map<Integer, Request> requestMap;
+	private Map<Integer, Event> eventMap;
 	private List<Node> neighboursList;
 	private Position position;
 	private int timeOfMostRecentUpdate;
@@ -31,27 +31,57 @@ public class Node{
 	private Field field;
 	
 	public Node(Field field, Position position, int signalStrength,
-			int agentLife, int requestLife){
+			int agentLife, int requestLife) throws IllegalArgumentException, 
+			NullPointerException{
 		Comparator<Task> taskComparator = new TaskComparator();
+		if(field == null){
+			throw new NullPointerException("field can not be null");
+		}else if(position == null){
+			throw new NullPointerException("position can not be null");
+		}else if(signalStrength < 0){
+			throw new IllegalArgumentException("signal strength must be positive");
+		}else if(agentLife <= 0 || requestLife <= 0){
+			throw new IllegalArgumentException("messages must have a minimum lifespan"
+					+ "of 1");
+		}else{
+			this.field = field;
+			this.position = position;
+			this.signalStrength = signalStrength;
+			this.agentLife = agentLife;
+			this.requestLife = requestLife;
 		
-		this.field = field;
-		this.position = position;
-		this.signalStrength = signalStrength;
-		this.agentLife = agentLife;
-		this.requestLife = requestLife;
-	
-		nodeState = NodeState.READY;
-		timeOfMostRecentUpdate = 0;
-		
-		taskQueue = new PriorityQueue<Task>(10, taskComparator);
-		eventList = new ArrayList<Event>();
-		neighboursList = new ArrayList<Node>();
-		routingMap = new HashMap<Integer, ImplicitEvent>();
-		requestMap = new HashMap<Integer, Request>();
+			nodeState = NodeState.READY;
+			timeOfMostRecentUpdate = 0;
+			
+			taskQueue = new PriorityQueue<Task>(10, taskComparator);
+			eventMap = new HashMap<Integer, Event>();
+			neighboursList = new ArrayList<Node>();
+			routingMap = new HashMap<Integer, ImplicitEvent>();
+			requestMap = new HashMap<Integer, Request>();
+		}
 	}
 	
 	/**
+	 * <b><i>update</i></b>
+	 * <p>
+	 * <pre>public void update()</pre>
 	 * 
+	 * The update method completes up to one task
+	 * specified by earlier generated <code>Task</code>s, every
+	 * time the method is called. If the <code>Node</code> fails
+	 * to complete the task with the highest priority it will try
+	 * the next of equal or lower priority until there are no more
+	 * tasks or if the <code>Node</code> manages to complete one.
+	 * <p>
+	 * The <code>Node</code> will not attempt to complete any tasks
+	 * if it recently has been updated either by being called by this 
+	 * method, or if it recently has received a message.
+	 * <p>
+	 * Any active requests will lose one life upon calling this method.
+	 * <p>
+	 * @see AgentMessage
+	 * @see RequestMessage
+	 * @see Task
 	 */
 	public void update(){
 		Task currentTask;
@@ -63,7 +93,6 @@ public class Node{
 		
 		for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
 			entry.getValue().decrementLifespan();
-			//System.out.println(entry.getValue().getLife());
 		}
 		
 		if(nodeState == NodeState.BUSY && !hasUpdatedThisTimeTick()){
@@ -76,7 +105,6 @@ public class Node{
 					
 					switch(currentTask.getAction()){
 					case CREATE_AGENTMESSAGE:
-						//System.out.println("Skapa agent, time: " + field.getCurrentTime());
 						message = new AgentMessage(this, agentLife);
 						taskQueue.remove();
 						if(sendMessage((AgentMessage)message)){
@@ -87,7 +115,6 @@ public class Node{
 						}
 						break;
 					case CREATE_REQUESTMESSAGE:
-						//System.out.println("Skapa request, time: " + field.getCurrentTime());
 						message = new RequestMessage((Integer)currentTask.getDataObject(),
 								requestLife, field.getCurrentTime(), this);
 						requestMap.put(((RequestMessage)message).getRequestId(),
@@ -101,7 +128,6 @@ public class Node{
 						}
 						break;
 					case HANDLE_AGENTMESSAGE:
-						//System.out.println(this.toString() + "; Hantera agent, time: " + field.getCurrentTime());
 						message = (AgentMessage)currentTask.getDataObject();
 						
 						//if hasn't yet updated the message
@@ -123,7 +149,6 @@ public class Node{
 						}
 						break;
 					case HANDLE_REQUESTMESSAGE:
-						//System.out.println("Hantera request, time: " + field.getCurrentTime());
 						message = (RequestMessage)currentTask.getDataObject();
 						
 						if(currentTask.getHandleIntex() == 0){
@@ -134,13 +159,9 @@ public class Node{
 						//request message is returned
 						if(((RequestMessage)message).getIsReturned()){
 							taskQueue.remove();
+							
 							//if it returned in time
 							//i.e. Node is still holding the request:
-							
-							/*for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
-								System.out.println(entry.getKey() + " == " + ((RequestMessage)message).getRequestId());
-							}*/
-							
 							if(requestMap.containsKey(((RequestMessage)message)
 									.getRequestId())){
 								printEvent(((RequestMessage)message).getEvent(),
@@ -190,7 +211,6 @@ public class Node{
 							tempRequest.reviveRequest();
 						}else{
 							iterator.remove();
-							//System.out.println("DIED");
 						}
 					}
 				}
@@ -199,6 +219,8 @@ public class Node{
 	}
 	
 	/*
+	 * Helper method.
+	 * 
 	 * Checks if the message possesses any valuable information,
 	 * i.e. if the message knows a shorter path to an event, and if
 	 * the message knows of an event which this node doesn't.
@@ -220,6 +242,12 @@ public class Node{
 		}
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Returns all tasks which couldn't be completed during the update, to
+	 * the priority queue holding the tasks.
+	 * */
 	private void returnToTaskQueue(ArrayList<Task> taskList){
 		for(Task task : taskList){
 			task.incrementIndex();
@@ -227,11 +255,33 @@ public class Node{
 		}
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Attempts to send a request message (without specified receiving node).
+	 * It does it in this order, if any of the previous fails:
+	 * 		- first checking in the routing table if there is a known
+	 * 			path to the event,
+	 * 		- then checking any of the adjacent nodes which hasn't
+	 * 			yet passed along this request message,
+	 * 		- and lastly checking any adjacent nodes if they are ready
+	 * 			to receive.
+	 * 
+	 * If all of the above fail, then the node will abandon the associated task
+	 * until next update.
+	 * 
+	 * Notes: if the node has a neighboring node which knows the way
+	 * to a specific event, it would be folly to send it to a node
+	 * which doesn't know the way. Hence the method can return true
+	 * or false in the cluster contained in the first if-statement.
+	 * 
+	 * The method either returns true or false, depending on if
+	 * the message was successfully sent or not.
+	 * */
 	private boolean sendMessage(RequestMessage message){
 		Node legitNode;
 		boolean visitedAll = true;
 		
-		//first check routingMap for path.
 		if(routingMap.containsKey(message.getAddressedTo())){
 			legitNode = routingMap.get(message.getAddressedTo()).getNode();
 			if(sendMessage(legitNode, message)){
@@ -242,8 +292,6 @@ public class Node{
 			}
 		}
 		
-		//first check any of the adjacent nodes
-		//which hasn't yet been visited by the message.
 		for(Node node : neighboursList){
 			if(!message.hasVisitedNode(node)){
 				visitedAll = false;
@@ -253,8 +301,6 @@ public class Node{
 			}
 		}
 		
-		//if ALL of the adjacent nodes already have been
-		//visited, then try to send back to one of them.
 		if(visitedAll){
 			for(Node node : neighboursList){
 				if(sendMessage(node, message)){
@@ -266,11 +312,25 @@ public class Node{
 		return false;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Attempts to send an agent message (without specified receiving node).
+	 * It does it in this order, if any of the previous fails:
+	 * 		- first checking any of the adjacent nodes which hasn't
+	 * 			yet passed along this agent message,
+	 * 		- and lastly checking any adjacent nodes if they are ready
+	 * 			to receive.
+	 * 
+	 * If all of the above fail, then the node will abandon the associated task
+	 * until next update.
+	 * 
+	 * The method either returns true or false, depending on if
+	 * the message was successfully sent or not.
+	 * */
 	private boolean sendMessage(AgentMessage message){
 		boolean visitedAll = true;
 		
-		//first check any of the adjacent nodes
-		//which hasn't yet been visited by the message.
 		for(Node node : neighboursList){
 			if(!message.hasVisitedNode(node)){
 				visitedAll = false;
@@ -280,8 +340,6 @@ public class Node{
 			}
 		}
 		
-		//if ALL of the adjacent nodes already have been
-		//visited, then try to send back to one of them.
 		if(visitedAll){
 			for(Node node : neighboursList){
 				if(sendMessage(node, message)){
@@ -290,10 +348,17 @@ public class Node{
 			}
 		}
 		
-		//the life of a message isn't all sweet 'u know.
 		return false;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Attempts to send a request message to a specific node.
+	 * 
+	 * The method either returns true or false, depending on if
+	 * the message was successfully sent or not.
+	 * */
 	private boolean sendMessage(Node node, RequestMessage message){
 		if(node.getNodeState() == NodeState.READY &&
 				!node.hasUpdatedThisTimeTick()){
@@ -304,6 +369,14 @@ public class Node{
 		return false;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Attempts to send an agent message to a specific node.
+	 * 
+	 * The method either returns true or false, depending on if
+	 * the message was successfully sent or not.
+	 * */
 	private boolean sendMessage(Node node, AgentMessage message){
 		if(node.getNodeState() == NodeState.READY &&
 				!node.hasUpdatedThisTimeTick()){
@@ -313,22 +386,84 @@ public class Node{
 		return false;
 	}
 	
-	public Event generateNewEvent(int id, int time){
-		Event e = new Event(id, time, this);
-		eventList.add(e);
+	/**
+	 * <b><i>generateNewEvent</i></b>
+	 * <p>
+	 * <pre>public Event generateNewEvent(int id)</pre>
+	 * 
+	 * Generates a new <code>Event</code> with the specified id.
+	 * The <code>Event</code> is then stored by the <code>Node</code>
+	 * which was used to call this method. If an event with the specified
+	 * id already is contained by the <code>Node</code>, the <code>Event</code>
+	 * is then replaced by the newly generated one. 
+	 * <p>
+	 * @param id - the id of the <code>Event</code>.
+	 * @return the <code>Event</code> which was generated.
+	 * @see Event
+	 * @see Task
+	 */
+	public Event generateNewEvent(int id){
+		Event e = new Event(id, field.getCurrentTime(), this);
+		eventMap.put(id, e);
 		return e;
 	}
 	
-	public void generateNewTask(Event event){
-		taskQueue.add(new Task(event, TaskAction.CREATE_AGENTMESSAGE));
-		setNodeState(NodeState.BUSY);
+	/**
+	 * <b><i>generateNewTask</i></b>
+	 * <p>
+	 * <pre>public void generateNewTask(Event event)</pre>
+	 * 
+	 * Generates a new internal <code>Task</code> for the <code>Node</code>
+	 * telling it to create a new <code>AgentMessage</code> with the
+	 * given <code>Event</code> as the most recent occurrence.
+	 * <p>
+	 * @param event - the most recent <code>Event</code>.
+	 * @throws java.io.NullPointerException if the given <code>Event</code> is null.
+	 * @see AgentMessage
+	 * @see Event
+	 * @see Task
+	 */
+	public void generateNewTask(Event event) throws NullPointerException{
+		if(event != null){
+			taskQueue.add(new Task(event, TaskAction.CREATE_AGENTMESSAGE));
+			setNodeState(NodeState.BUSY);
+		}else{
+			throw new NullPointerException("can not generate new task with"
+					+ " null event");
+		}
 	}
 	
-	public void generateNewTask(Integer i){
-		taskQueue.add(new Task(i, TaskAction.CREATE_REQUESTMESSAGE));
-		setNodeState(NodeState.BUSY);
+	/**
+	 * <b><i>generateNewTask</i></b>
+	 * <p>
+	 * <pre>public void generateNewTask(Integer id)</pre>
+	 * 
+	 * Generates a new internal <code>Task</code> for the <code>Node</code>
+	 * telling it to create a new <code>RequestMessage</code> with the
+	 * given id specifying which <code>Event</code> to fetch data from.
+	 * <p>
+	 * @param id - the id of the <code>Event</code> which the <code>Node</code>
+	 * will pass to the <code>RequestMessage</code>.
+	 * @throws java.io.NullPointerException if the given <code>Integer</code> is null.
+	 * @see Event
+	 * @see RequestMessage
+	 * @see Task
+	 */
+	public void generateNewTask(Integer id) throws NullPointerException{
+		if(id != null){
+			taskQueue.add(new Task(id, TaskAction.CREATE_REQUESTMESSAGE));
+			setNodeState(NodeState.BUSY);
+		}else{
+			throw new NullPointerException("can not generate new task with"
+					+ " null id");
+		}
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * 
+	 * */
 	private void generateNewTask(AgentMessage message){
 		taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
 		setNodeState(NodeState.BUSY);
@@ -389,16 +524,11 @@ public class Node{
 	}
 	
 	protected HashMap<Integer, ImplicitEvent> getRoutingMap(){
-		return routingMap;
+		return new HashMap<Integer, ImplicitEvent>(routingMap);
 	}
 	
-	protected Event getEventById(int id) throws IllegalArgumentException{
-		for(Event e : eventList){
-			if(e.getId() == id){
-				return e;
-			}
-		}
-		throw new IllegalArgumentException("event with id not found");
+	protected Event getEventById(int id){
+		return eventMap.get(id);
 	}
 	
 	public int getSignalStrength(){
@@ -439,6 +569,18 @@ public class Node{
 				+ "\n");
 	}
 	
+	/**
+	 * <b><i>getStringRepresentation</i></b>
+	 * <p>
+	 * <pre>public String getStringRepresentation()</pre>
+	 * 
+	 * Returns a <code>String</code> representation of the <code>Node</code> on 
+	 * the form:
+	 * <p>
+	 * <pre>position x; position y; signal strength; agent life; request life</pre>
+	 * <p>
+	 * @return the <code>String</code> representation of the <code>Node</code>.
+	 */
 	public String getStringRepresentation(){
 		return getPosition().getX()
 				+ ";" + getPosition().getY()
@@ -460,22 +602,24 @@ public class Node{
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		Node other;
+		if(this == obj){
 			return true;
-		if (obj == null)
+		}
+		if(obj == null){
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if(getClass() != obj.getClass()){
 			return false;
-		Node other = (Node) obj;
-		if (position == null) {
-			if (other.position != null)
+		}
+		other = (Node) obj;
+		if(position == null){
+			if(other.position != null){
 				return false;
-		} else if (!position.equals(other.position))
+			}
+		}else if(!position.equals(other.position)){
 			return false;
-		if (signalStrength != other.signalStrength)
-			return false;
-		if (timeOfMostRecentUpdate != other.timeOfMostRecentUpdate)
-			return false;
+		}
 		return true;
 	}
 }
