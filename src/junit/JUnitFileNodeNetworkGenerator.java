@@ -20,10 +20,10 @@ public class JUnitFileNodeNetworkGenerator {
 	public void testIfSuccessfullyReadFromFile(){
 		Field field = new Field(1,1,1,1,1);
 		String testString = "1;2;3;4;5\n"
-							+ "2;3;4;5;1\n"
-							+ "3;4;5;1;2\n"
-							+ "4;5;1;2;3\n"
-							+ "5;1;2;3;4\n";
+				+ "2;3;4;5;1\n"
+				+ "3;4;5;1;2\n"
+				+ "4;5;1;2;3\n"
+				+ "5;1;2;3;4\n";
 		Exception exc;
 		try {
 			exc = read("testNetwork.txt", field);
@@ -44,18 +44,18 @@ public class JUnitFileNodeNetworkGenerator {
 
 	private Exception read(String file, Field field) throws IOException{
 		FileReader fileReader;
-        FileNodeNetworkGenerator nGen;
-        HashMap<Position, Node> map;
-        
+        	FileNodeNetworkGenerator nGen;
+		HashMap<Position, Node> map;
+        	
 		fileReader = new FileReader(file);
 		nGen = new FileNodeNetworkGenerator(fileReader, field);
 		map = nGen.generate();
 		if(map != null){
 			field.loadNodeNetwork(map);
 		}
-	    nGen.closeCurrentReader();
+		nGen.closeCurrentReader();
 	    
-	    return nGen.getException();
+		return nGen.getException();
 	}
 	
 }
