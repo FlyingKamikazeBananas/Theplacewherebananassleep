@@ -12,8 +12,37 @@ import java.util.Map.Entry;
 import surrounding.Field;
 import coordination.Position;
 
-//behöver snyggas upp
-
+/**
+ * <p>
+ * The <code>Node</code> class ...
+ * </p>
+ * <p>
+ * Depending on what tasks the node hold, upon calling the update method the node
+ * will either create a new <code>AgentMessage</code> or <code>RequestMessage</code>,
+ * or handle a <code>AgentMessage</code> or <code>RequestMessage</code> it has received earlier.</br>
+ * The tasks are held in a priority queue with the following priority (top = high, bottom = lower):
+ * <ul>
+ * 		<li>creating an agent message</li>
+ * 		<li>creating a request message</li>
+ * 		<li>handling an agent message, or a request message.</li>
+ * </ul>
+ * Handling an agent message refer to (if not already) comparing and synchronizing each routing map, then
+ * passing the message along to an adequate neighboring node.</br>
+ * Handling a request message refer to (if not already) checking where it is heading;
+ * if heading back, then checking if it has reached its goal and process the fetched event (if
+ * the request still is active);
+ * or passing it along accordingly.</br>
+ * If either message has reached or is past its expiration date, the node will disregard it
+ * by removing it from the priority queue, and then try the next task instead.</br> 
+ * </br>
+ * If a newly created agent message could not be sent it will be put in a new
+ * task as "handling an agent message" and ultimately returned to the priority queue.</br>
+ * Similarly if a newly request message could not be send it will be put in a new task
+ * and treated as "handling a request message".</br>
+ * If the node could not process a message with the task of handling it, it will ultimately
+ * return it to the priority queue.
+ * </p>
+ * */
 public class Node{
 	
 	private final int agentLife;
@@ -30,6 +59,27 @@ public class Node{
 	private int signalStrength;
 	private Field field;
 	
+	/**
+	 * <b>Node</b>
+	 * <pre>public Node(Field field, Position position, int signalStrength,
+			int agentLife, int requestLife)</pre>
+	 * <p>
+	 * Creates a <code>Node</code> object with the specified properties.
+	 * </p>
+	 * @param field the <code>Field</code> instance holding this <code>Node</code>.
+	 * @param position the <code>Position</code> this node should presume.
+	 * @param signalStrength the signal strength of this node, this determines which
+	 * other nodes this node can communicate with.
+	 * @param agentLife the amount of lives this node should instantiate its agent messages
+	 * with.
+	 * @param requestLife the amount of live this node should instantiate its request messages
+	 * with.
+	 * @throws java.lang.IllegalArgumentException if the signal strength is less
+	 * than zero, or if the specified agent or request lives are equal to or is less
+	 * than zero.
+	 * @throws java.lang.NullPointerException if either the given <code>Field</code> or the 
+	 * given <code>Position</code> is null.
+	 */
 	public Node(Field field, Position position, int signalStrength,
 			int agentLife, int requestLife) throws IllegalArgumentException, 
 			NullPointerException{
@@ -63,22 +113,23 @@ public class Node{
 	
 	/**
 	 * <b><i>update</i></b>
-	 * <p>
 	 * <pre>public void update()</pre>
-	 * 
+	 * <p>
 	 * The update method completes up to one task
 	 * specified by earlier generated <code>Task</code>s, every
 	 * time the method is called. If the <code>Node</code> fails
 	 * to complete the task with the highest priority it will try
 	 * the next of equal or lower priority until there are no more
 	 * tasks or if the <code>Node</code> manages to complete one.
+	 * </p>
 	 * <p>
 	 * The <code>Node</code> will not attempt to complete any tasks
 	 * if it recently has been updated either by being called by this 
 	 * method, or if it recently has received a message.
+	 * </p>
 	 * <p>
 	 * Any active requests will lose one life upon calling this method.
-	 * <p>
+	 * </p>
 	 * @see AgentMessage
 	 * @see RequestMessage
 	 * @see Task
@@ -130,15 +181,12 @@ public class Node{
 					case HANDLE_AGENTMESSAGE:
 						message = (AgentMessage)currentTask.getDataObject();
 						
-						//if hasn't yet updated the message
-						//i.e, first time taken out of taskQueue.
 						if(currentTask.getHandleIntex() == 0){
 							((AgentMessage)message).update(this);
 							update((AgentMessage)message);
 							((AgentMessage)message).decrementLifespan();
 						}
 						
-						//attempt to send message or add the task to a list
 						if(((AgentMessage)message).isDead()){
 							taskQueue.remove();
 						}else if(sendMessage((AgentMessage)message)){
@@ -156,12 +204,9 @@ public class Node{
 							((RequestMessage)message).decrementLifespan();
 						}
 						
-						//request message is returned
 						if(((RequestMessage)message).getIsReturned()){
 							taskQueue.remove();
 							
-							//if it returned in time
-							//i.e. Node is still holding the request:
 							if(requestMap.containsKey(((RequestMessage)message)
 									.getRequestId())){
 								printEvent(((RequestMessage)message).getEvent(),
@@ -170,11 +215,7 @@ public class Node{
 									.getRequestId());
 							}
 						}else if(((RequestMessage)message).isDead()){
-							//message is past its life time
 							taskQueue.remove();
-						
-						//attempt to return to the sender (if needed),
-						//or add task to list if failed.
 						}else if(((RequestMessage)message).getReturnToSender()){
 							if(sendMessage(((RequestMessage)message).getReturnAddress(),
 									((RequestMessage)message))){
@@ -184,7 +225,6 @@ public class Node{
 							}else{
 								failedTasks.add(taskQueue.remove());
 							}
-						//send message or add the task to a list
 						}else{
 							if(sendMessage((RequestMessage)message)){
 								taskQueue.remove();
@@ -388,16 +428,15 @@ public class Node{
 	
 	/**
 	 * <b><i>generateNewEvent</i></b>
-	 * <p>
 	 * <pre>public Event generateNewEvent(int id)</pre>
-	 * 
+	 * <p>
 	 * Generates a new <code>Event</code> with the specified id.
 	 * The <code>Event</code> is then stored by the <code>Node</code>
 	 * which was used to call this method. If an event with the specified
 	 * id already is contained by the <code>Node</code>, the <code>Event</code>
 	 * is then replaced by the newly generated one. 
-	 * <p>
-	 * @param id - the id of the <code>Event</code>.
+	 * </p>
+	 * @param id the id of the <code>Event</code>.
 	 * @return the <code>Event</code> which was generated.
 	 * @see Event
 	 * @see Task
@@ -410,15 +449,14 @@ public class Node{
 	
 	/**
 	 * <b><i>generateNewTask</i></b>
-	 * <p>
 	 * <pre>public void generateNewTask(Event event)</pre>
-	 * 
+	 * <p>
 	 * Generates a new internal <code>Task</code> for the <code>Node</code>
 	 * telling it to create a new <code>AgentMessage</code> with the
 	 * given <code>Event</code> as the most recent occurrence.
-	 * <p>
-	 * @param event - the most recent <code>Event</code>.
-	 * @throws java.io.NullPointerException if the given <code>Event</code> is null.
+	 * </p>
+	 * @param event the most recent <code>Event</code>.
+	 * @throws java.lang.NullPointerException if the given <code>Event</code> is null.
 	 * @see AgentMessage
 	 * @see Event
 	 * @see Task
@@ -435,16 +473,15 @@ public class Node{
 	
 	/**
 	 * <b><i>generateNewTask</i></b>
-	 * <p>
 	 * <pre>public void generateNewTask(Integer id)</pre>
-	 * 
+	 * <p>
 	 * Generates a new internal <code>Task</code> for the <code>Node</code>
 	 * telling it to create a new <code>RequestMessage</code> with the
 	 * given id specifying which <code>Event</code> to fetch data from.
-	 * <p>
-	 * @param id - the id of the <code>Event</code> which the <code>Node</code>
+	 * </p>
+	 * @param id the id of the <code>Event</code> which the <code>Node</code>
 	 * will pass to the <code>RequestMessage</code>.
-	 * @throws java.io.NullPointerException if the given <code>Integer</code> is null.
+	 * @throws java.lang.NullPointerException if the given <code>Integer</code> is null.
 	 * @see Event
 	 * @see RequestMessage
 	 * @see Task
@@ -462,49 +499,62 @@ public class Node{
 	/*
 	 * Helper method.
 	 * 
-	 * 
+	 * See the two methods directly below this one.
 	 * */
-	private void generateNewTask(AgentMessage message){
-		taskQueue.add(new Task(message, TaskAction.HANDLE_AGENTMESSAGE));
+	private void addMessageTask(Message message, TaskAction action){
+		taskQueue.add(new Task(message, action));
 		setNodeState(NodeState.BUSY);
 		setTimeOfMostRecentUpdate(field.getCurrentTime());
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * This method is used between nodes. It generates a new Task with
+	 * the specified agent message, and then adds it to the priority queue
+	 * which the node hold. The Node is marked as updated when this method is called.
+	 * */
+	private void generateNewTask(AgentMessage message){
+		addMessageTask(message, TaskAction.HANDLE_AGENTMESSAGE);
+	}
+	
+	/*
+	 * Helper method.
+	 * 
+	 * This method is used between nodes. It generates a new Task with
+	 * the specified request message, and then adds it to the priority queue
+	 * which the node hold. The Node is marked as updated when this method is called.
+	 * 
+	 * More specifically if an equal request message is found within the priority queue of 
+	 * the node the following is checked and performed:
+	 * 		- if either message is on its way back to the originating node where it was
+	 * 			created, the one on the way back is stored and the other disregarded.
+	 * 		- if both are on their way back to the originating node, or if both aren't
+	 * 			then they are compared with the compareTo method in the RequestMessage class.
+	 * 			The input message is only used if the compareTo method return a value greater
+	 * 			than zero.
+	 * */
 	private void generateNewTask(RequestMessage message){
 		Iterator<Task> iterator;
 		Task currentTask;
 		boolean foundAlike = false;
 		iterator = taskQueue.iterator();
 		
-		//manage if message of same type already exist;
-		//look at equals method in RequestMessage
 		while(iterator.hasNext()){
 			currentTask = iterator.next();
 			
-			//obviously have to check if any of the tasks actually
-			//consists of an instance of RequestMessage
 			if(message.equals(currentTask.getDataObject())){
-				
-				//if newly received message is on its way back and the currently
-				//held isn't, then replace.
 				if(message.getReturnToSender() && 
 							!((RequestMessage)currentTask.getDataObject()).getReturnToSender()){
 					iterator.remove();
-					taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
-					setNodeState(NodeState.BUSY);
-					setTimeOfMostRecentUpdate(field.getCurrentTime());
-					
-				//if both are not, or if both are on their way back, then compare 
-				//current lives. the one with most lives is the one who gets to stay.
+					addMessageTask(message, TaskAction.HANDLE_REQUESTMESSAGE);
 				}else if((!message.getReturnToSender() && 
 						!((RequestMessage)currentTask.getDataObject()).getReturnToSender()) ||
 						(message.getReturnToSender() && 
 						((RequestMessage)currentTask.getDataObject()).getReturnToSender())){
 					if(message.compareTo(((RequestMessage)currentTask.getDataObject())) > 0){
 						iterator.remove();
-						taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
-						setNodeState(NodeState.BUSY);
-						setTimeOfMostRecentUpdate(field.getCurrentTime());
+						addMessageTask(message, TaskAction.HANDLE_REQUESTMESSAGE);
 					}
 				}
 				foundAlike = true;
@@ -513,38 +563,98 @@ public class Node{
 		}
 		
 		if(!foundAlike){
-			taskQueue.add(new Task(message, TaskAction.HANDLE_REQUESTMESSAGE));
-			setNodeState(NodeState.BUSY);
-			setTimeOfMostRecentUpdate(field.getCurrentTime());
+			addMessageTask(message, TaskAction.HANDLE_REQUESTMESSAGE);
 		}
 	}
 	
+	
+	/**
+	 * <b><i>getNodeState</i></b>
+	 * <pre>protected NodeState getNodeState()</pre>
+	 * <p>
+	 * Returns the current state of the node.
+	 * </p>
+	 * @return the state of the node.
+	 */
 	protected NodeState getNodeState(){
 		return nodeState;
 	}
 	
+	/**
+	 * <b><i>getRoutingMap</i></b>
+	 * <pre>protected HashMap<Integer, ImplicitEvent> getRoutingMap()</pre>
+	 * <p>
+	 * Returns the current routing map which this node holds. The
+	 * routing map tells from which adjacent nodes it received information
+	 * regarding specific events.
+	 * </p>
+	 * @return a copy of the <code>HashMap</code> containing directions to
+	 * events which the node know about.
+	 */
 	protected HashMap<Integer, ImplicitEvent> getRoutingMap(){
 		return new HashMap<Integer, ImplicitEvent>(routingMap);
 	}
 	
+	/**
+	 * <b><i>getEventById</i></b>
+	 * <pre>protected Event getEventById(int id)</pre>
+	 * <p>
+	 * Returns the <code>Event</code> corresponding to the specified
+	 * event id, or <code>null</code> if no event with such id 
+	 * is stored within the node.
+	 * </p>
+	 * @param id - the id of the sought <code>Event</code>
+	 * @return the <code>Event</code> with the specified id, or null
+	 * if no such event exist within the node.
+	 */
 	protected Event getEventById(int id){
 		return eventMap.get(id);
 	}
 	
+	/**
+	 * <b><i>getSignalStrength</i></b>
+	 * <pre>public int getSignalStrength()</pre>
+	 * <p>
+	 * Returns the int representation of the signal strength for this <code>Node</code>.
+	 * </p>
+	 * @return the signal strength of this <code>Node</code>.
+	 */
 	public int getSignalStrength(){
 		return signalStrength;
 	}
 	
+	/**
+	 * <b><i>getPosition</i></b>
+	 * <pre>public Position getPosition()</pre>
+	 * <p>
+	 * Returns the position object of this <code>Node</code>.
+	 * </p>
+	 * @return the position object of this <code>Node</code>.
+	 * @see Position
+	 */
 	public Position getPosition(){
 		return position;
 	}
 	
+	/**
+	 * <b><i>updateNeighbours</i></b>
+	 * <pre>public void updateNeighbours()</pre>
+	 * <p>
+	 * Signals this <code>Node</code> to revise its list over neighboring nodes.
+	 * The call has no effect if the <code>Field</code> in which the <code>Node</code>
+	 * is held, hasn't recently made changes to the node network.
+	 * </p>
+	 * @see Field
+	 */
 	public void updateNeighbours(){
 		if(field.getRecentlyChangedNodeNetwork()){
 			neighboursList = field.getNodesWithinRangeofNode(this);
 		}
 	}
 	
+	/*
+	 * Only the node class will and should be able to change its internal state. 
+	 * */
 	private void setNodeState(NodeState nodeState){
 		this.nodeState = nodeState;
 	}
@@ -553,10 +663,22 @@ public class Node{
 		return timeOfMostRecentUpdate == field.getCurrentTime();
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Updates the holder with the time of the most recent update.
+	 * */
 	private void setTimeOfMostRecentUpdate(int time){
 		timeOfMostRecentUpdate = time;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * This method is used in direct correlation to when a request message has
+	 * returned to the node (in time). It prints some interesting information
+	 * surrounding the event which the node sent for.
+	 * */
 	private void printEvent(Event event, RequestMessage message){
 		System.out.println(field.getCurrentTime() 
 				+ ": " + this.toString()
@@ -571,14 +693,12 @@ public class Node{
 	
 	/**
 	 * <b><i>getStringRepresentation</i></b>
-	 * <p>
 	 * <pre>public String getStringRepresentation()</pre>
-	 * 
+	 * <p>
 	 * Returns a <code>String</code> representation of the <code>Node</code> on 
 	 * the form:
-	 * <p>
+	 * </p>
 	 * <pre>position x; position y; signal strength; agent life; request life</pre>
-	 * <p>
 	 * @return the <code>String</code> representation of the <code>Node</code>.
 	 */
 	public String getStringRepresentation(){
@@ -600,6 +720,18 @@ public class Node{
 		return result;
 	}
 
+	/**
+	 * <b><i>equals</i></b>
+	 * <pre>public boolean equals(Object obj)</pre>
+	 * <p>
+	 * Returns <code>true</code> if and only if this <code>Node</code> and 
+	 * the compared object refer to the same (<code>this == other is true</code>), <b>or</b> if the <code>Position</code> of this <code>Node</code> is equal to
+	 * the <code>Position</code> of the compared <code>Node</code>.
+	 * </p>
+	 * @param obj - the <code>Object</code> to compare to this.
+	 * @return <code>true</code> if this <code>Node</code> and the compared object refer to the same, or if their positions correspond.
+	 * @see Position
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		Node other;
