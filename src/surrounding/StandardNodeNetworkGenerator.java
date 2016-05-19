@@ -44,8 +44,8 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 							y*nodeDistance);
 					tempNode = new Node(field, tempPosition,
 							nodeSignalStrength,
-							requestLife,
-							agentLife);
+							agentLife,
+							requestLife);
 					map.put(tempPosition, tempNode);
 				}
 			}

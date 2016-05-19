@@ -1,10 +1,27 @@
 package nodebasis;
 
+/**
+ * 
+ * @author  Alexander Beliaev
+ * @version 1.0
+ * @since   2016-05-19
+ * */
 public abstract class Message implements Lifespan{
 	
 	private final int messageLifespan;
 	private int currentMessageLifespan;
 	
+	/**
+	 * <b>Message</b>
+	 * <pre>public Message(int messageLife)</pre>
+	 * <p>
+	 * Creates a <code>Message</code> object with the 
+	 * amount of lives this message should possess.
+	 * </p>
+	 * @param messageLife the amount of lives the message should possess.
+	 * @throws java.lang.IllegalArgumentException if the given amount of lives are equal
+	 * to or less than zero.
+	 */
 	public Message(int messageLife) throws IllegalArgumentException{
 		if(messageLife > 0){
 			this.messageLifespan = this.currentMessageLifespan = messageLife;
@@ -15,11 +32,27 @@ public abstract class Message implements Lifespan{
 	
 	protected abstract void update(Node node);
 	
+	/**
+	 * <b>decrementLifespan</b>
+	 * <pre>public void decrementLifespan()</pre>
+	 * <p>
+	 * Decrements the current lifespan of the message by one.
+	 * </p>
+	 */
 	@Override
 	public void decrementLifespan(){
 		currentMessageLifespan--;
 	}
 	
+	/**
+	 * <b>isDead</b>
+	 * <pre>public boolean isDead()</pre>
+	 * <p>
+	 * Returns if the message has expired.
+	 * </p>
+	 * @return <code>true</code> if the message has expired,
+	 * <code>false</code> otherwise.
+	 */
 	@Override
 	public boolean isDead(){
 		return currentMessageLifespan <= 0;
@@ -49,6 +82,7 @@ public abstract class Message implements Lifespan{
 			return false;
 		return true;
 	}
+
 	
 	
 }

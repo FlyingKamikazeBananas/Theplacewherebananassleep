@@ -42,6 +42,10 @@ import coordination.Position;
  * If the node could not process a message with the task of handling it, it will ultimately
  * return it to the priority queue.
  * </p>
+ * 
+ * @author  Alexander Beliaev
+ * @version 1.0
+ * @since   2016-05-19
  * */
 public class Node{
 	
@@ -54,7 +58,6 @@ public class Node{
 	private Map<Integer, Event> eventMap;
 	private List<Node> neighboursList;
 	private Position position;
-	private int timeOfMostRecentUpdate;
 	private NodeState nodeState;
 	private int signalStrength;
 	private Field field;
@@ -101,7 +104,6 @@ public class Node{
 			this.requestLife = requestLife;
 		
 			nodeState = NodeState.READY;
-			timeOfMostRecentUpdate = 0;
 			
 			taskQueue = new PriorityQueue<Task>(10, taskComparator);
 			eventMap = new HashMap<Integer, Event>();
@@ -146,113 +148,119 @@ public class Node{
 			entry.getValue().decrementLifespan();
 		}
 		
-		if(nodeState == NodeState.BUSY && !hasUpdatedThisTimeTick()){
-			if(taskQueue.isEmpty()){
-				setNodeState(NodeState.READY);
-			}else{
-				failedTasks = new ArrayList<Task>(taskQueue.size());
-				while(!successfulTask && !taskQueue.isEmpty()){
-					currentTask = taskQueue.peek();
+		if(this.getNodeState() == NodeState.READY && !taskQueue.isEmpty()){
+			failedTasks = new ArrayList<Task>(taskQueue.size());
+			while(!successfulTask && !taskQueue.isEmpty()){
+				currentTask = taskQueue.peek();
+				
+				switch(currentTask.getAction()){
+				case CREATE_AGENTMESSAGE:
+					Task newTaskA;
+					message = new AgentMessage(this, agentLife);
+					taskQueue.poll();
+					if(sendMessage((AgentMessage)message)){
+						successfulTask = true;
+					}else{
+						newTaskA = new Task((AgentMessage)message,
+								TaskAction.HANDLE_AGENTMESSAGE);
+						newTaskA.incrementIndex();
+						failedTasks.add(newTaskA);
+					}
+					break;
+				case CREATE_REQUESTMESSAGE:
+					Task newTaskR;
+					message = new RequestMessage((Integer)currentTask.getDataObject(),
+							requestLife, field.getCurrentTime(), this);
+					requestMap.put(((RequestMessage)message).getRequestId(),
+							new Request(requestLife));
+					taskQueue.poll();
+					if(sendMessage((RequestMessage)message)){
+						successfulTask = true;
+					}else{
+						newTaskR = new Task((RequestMessage)message,
+								TaskAction.HANDLE_REQUESTMESSAGE);
+						newTaskR.incrementIndex();
+						failedTasks.add(newTaskR);
+					}
+					break;
+				case HANDLE_AGENTMESSAGE:
+					message = (AgentMessage)currentTask.getDataObject();
 					
-					switch(currentTask.getAction()){
-					case CREATE_AGENTMESSAGE:
-						message = new AgentMessage(this, agentLife);
-						taskQueue.remove();
-						if(sendMessage((AgentMessage)message)){
+					if(currentTask.getHandleIntex() == 0){
+						
+						update((AgentMessage)message);
+						((AgentMessage)message).update(this);
+						((AgentMessage)message).decrementLifespan();
+					}
+					
+					if(((AgentMessage)message).isDead()){
+						taskQueue.poll();
+					}else if(sendMessage((AgentMessage)message)){
+						taskQueue.poll();
+						successfulTask = true;
+					}else{
+						failedTasks.add(taskQueue.poll());
+					}
+					break;
+				case HANDLE_REQUESTMESSAGE:
+					message = (RequestMessage)currentTask.getDataObject();
+					
+					if(currentTask.getHandleIntex() == 0){
+						((RequestMessage)message).update(this);
+						((RequestMessage)message).decrementLifespan();
+					}
+					
+					if(((RequestMessage)message).getIsReturned()){
+						taskQueue.poll();
+						if(requestMap.containsKey(((RequestMessage)message)
+								.getRequestId())){
+							printEvent(((RequestMessage)message).getEvent(),
+									(RequestMessage)message);
+							requestMap.remove(((RequestMessage)message)
+								.getRequestId());
+						}else{
+							printExpiredRequestOnRetrievedEvent(((RequestMessage)message).getEvent().getTime());
+						}
+					}else if(((RequestMessage)message).isDead()){
+						//printFoundExpiredRequestMessage((RequestMessage)message);
+						taskQueue.poll();
+					}else if(((RequestMessage)message).getReturnToSender()){
+						if(sendMessage(((RequestMessage)message).getReturnAddress(),
+								((RequestMessage)message))){
+							((RequestMessage)message).resetCurrentMessageLife();
+							taskQueue.poll();
 							successfulTask = true;
 						}else{
-							failedTasks.add(new Task((AgentMessage)message,
-									TaskAction.HANDLE_AGENTMESSAGE));
+							failedTasks.add(taskQueue.poll());
 						}
-						break;
-					case CREATE_REQUESTMESSAGE:
-						message = new RequestMessage((Integer)currentTask.getDataObject(),
-								requestLife, field.getCurrentTime(), this);
-						requestMap.put(((RequestMessage)message).getRequestId(),
-								new Request(requestLife*8));
-						taskQueue.remove();
+					}else{
 						if(sendMessage((RequestMessage)message)){
+							taskQueue.poll();
 							successfulTask = true;
 						}else{
-							failedTasks.add(new Task((RequestMessage)message,
-									TaskAction.HANDLE_REQUESTMESSAGE));
-						}
-						break;
-					case HANDLE_AGENTMESSAGE:
-						message = (AgentMessage)currentTask.getDataObject();
-						
-						if(currentTask.getHandleIntex() == 0){
-							((AgentMessage)message).update(this);
-							update((AgentMessage)message);
-							((AgentMessage)message).decrementLifespan();
-						}
-						
-						if(((AgentMessage)message).isDead()){
-							taskQueue.remove();
-						}else if(sendMessage((AgentMessage)message)){
-							taskQueue.remove();
-							successfulTask = true;
-						}else{
-							failedTasks.add(taskQueue.remove());
-						}
-						break;
-					case HANDLE_REQUESTMESSAGE:
-						message = (RequestMessage)currentTask.getDataObject();
-						
-						if(currentTask.getHandleIntex() == 0){
-							((RequestMessage)message).update(this);
-							((RequestMessage)message).decrementLifespan();
-						}
-						
-						if(((RequestMessage)message).getIsReturned()){
-							taskQueue.remove();
-							
-							if(requestMap.containsKey(((RequestMessage)message)
-									.getRequestId())){
-								printEvent(((RequestMessage)message).getEvent(),
-										(RequestMessage)message);
-								requestMap.remove(((RequestMessage)message)
-									.getRequestId());
-							}
-						}else if(((RequestMessage)message).isDead()){
-							taskQueue.remove();
-						}else if(((RequestMessage)message).getReturnToSender()){
-							if(sendMessage(((RequestMessage)message).getReturnAddress(),
-									((RequestMessage)message))){
-								((RequestMessage)message).resetCurrentMessageLife();
-								taskQueue.remove();
-								successfulTask = true;
-							}else{
-								failedTasks.add(taskQueue.remove());
-							}
-						}else{
-							if(sendMessage((RequestMessage)message)){
-								taskQueue.remove();
-								successfulTask = true;
-							}else{
-								failedTasks.add(taskQueue.remove());
-							}
-						}
-						break;
-					}
-				}
-				
-				returnToTaskQueue(failedTasks);
-				
-				if(successfulTask){
-					setTimeOfMostRecentUpdate(field.getCurrentTime());
-				}
-				
-				iterator = requestMap.entrySet().iterator();
-				while(iterator.hasNext()){
-					tempRequest = iterator.next().getValue();
-					if(tempRequest.isDead()){
-						if(tempRequest.getNumberOfTimesRevived() == 0){
-							tempRequest.reviveRequest();
-						}else{
-							iterator.remove();
+							failedTasks.add(taskQueue.poll());
 						}
 					}
+					break;
+				}
+			}
+			
+			returnToTaskQueue(failedTasks);
+			
+			if(successfulTask){
+				setNodeState(NodeState.BUSY);
+			}
+		}
+	
+		
+		iterator = requestMap.entrySet().iterator();
+		while(iterator.hasNext()){
+			tempRequest = iterator.next().getValue();
+			if(tempRequest.isDead()){
+				if(tempRequest.getNumberOfTimesRevived() == 0){
+					tempRequest.reviveRequest();
+				}else{
+					iterator.remove();
 				}
 			}
 		}
@@ -266,17 +274,16 @@ public class Node{
 	 * the message knows of an event which this node doesn't.
 	 * */
 	private void update(AgentMessage agentMessage){
-		HashMap<Integer, ImplicitEvent> agentRoutingMap = agentMessage.getRoutingMap();
 		ImplicitEvent implicitEvent;
 		int distance;
 		
-		for(Entry<Integer, ImplicitEvent> entry : agentRoutingMap.entrySet()){
+		for(Entry<Integer, ImplicitEvent> entry : agentMessage.getRoutingMap().entrySet()){
 			implicitEvent = routingMap.get(entry.getKey());
 			distance = entry.getValue().getDistance();
 			
 			if(implicitEvent != null && implicitEvent.getDistance() > distance){
 				routingMap.replace(entry.getKey(), entry.getValue());
-			}else{
+			}else if(implicitEvent == null){
 				routingMap.put(entry.getKey(), entry.getValue());
 			}
 		}
@@ -400,10 +407,8 @@ public class Node{
 	 * the message was successfully sent or not.
 	 * */
 	private boolean sendMessage(Node node, RequestMessage message){
-		if(node.getNodeState() == NodeState.READY &&
-				!node.hasUpdatedThisTimeTick()){
+		if(node.getNodeState() == NodeState.READY){
 			node.generateNewTask(message);
-			message.resetCurrentMessageLife();
 			return true;
 		}
 		return false;
@@ -418,8 +423,7 @@ public class Node{
 	 * the message was successfully sent or not.
 	 * */
 	private boolean sendMessage(Node node, AgentMessage message){
-		if(node.getNodeState() == NodeState.READY &&
-				!node.hasUpdatedThisTimeTick()){
+		if(node.getNodeState() == NodeState.READY){
 			node.generateNewTask(message);
 			return true;
 		}
@@ -444,6 +448,7 @@ public class Node{
 	public Event generateNewEvent(int id){
 		Event e = new Event(id, field.getCurrentTime(), this);
 		eventMap.put(id, e);
+		routingMap.put(id, new ImplicitEvent(e));
 		return e;
 	}
 	
@@ -464,7 +469,6 @@ public class Node{
 	public void generateNewTask(Event event) throws NullPointerException{
 		if(event != null){
 			taskQueue.add(new Task(event, TaskAction.CREATE_AGENTMESSAGE));
-			setNodeState(NodeState.BUSY);
 		}else{
 			throw new NullPointerException("can not generate new task with"
 					+ " null event");
@@ -489,7 +493,6 @@ public class Node{
 	public void generateNewTask(Integer id) throws NullPointerException{
 		if(id != null){
 			taskQueue.add(new Task(id, TaskAction.CREATE_REQUESTMESSAGE));
-			setNodeState(NodeState.BUSY);
 		}else{
 			throw new NullPointerException("can not generate new task with"
 					+ " null id");
@@ -504,7 +507,6 @@ public class Node{
 	private void addMessageTask(Message message, TaskAction action){
 		taskQueue.add(new Task(message, action));
 		setNodeState(NodeState.BUSY);
-		setTimeOfMostRecentUpdate(field.getCurrentTime());
 	}
 	
 	/*
@@ -653,23 +655,10 @@ public class Node{
 	}
 	
 	/*
-	 * Only the node class will and should be able to change its internal state. 
+	 * Helper method.
 	 * */
 	private void setNodeState(NodeState nodeState){
 		this.nodeState = nodeState;
-	}
-	
-	protected boolean hasUpdatedThisTimeTick(){
-		return timeOfMostRecentUpdate == field.getCurrentTime();
-	}
-	
-	/*
-	 * Helper method.
-	 * 
-	 * Updates the holder with the time of the most recent update.
-	 * */
-	private void setTimeOfMostRecentUpdate(int time){
-		timeOfMostRecentUpdate = time;
 	}
 	
 	/*
@@ -682,14 +671,39 @@ public class Node{
 	private void printEvent(Event event, RequestMessage message){
 		System.out.println(field.getCurrentTime() 
 				+ ": " + this.toString()
+				+ " (" + getStringRepresentation() + ")"
 				+ " received event details from request sent at "
 				+ message.getTimeOfCreation() + " --"
 				+ " x:" + event.getPosition().getX() 
 				+ "; y:" + event.getPosition().getY()
 				+ ", time: " + event.getTime()
-				+ ", id: " + event.getId()
-				+ "\n");
+				+ ", id: " + event.getId());
 	}
+	
+	/*
+	 * Helper method.
+	 * 
+	 * This method is used in direct correlation to when a request message has
+	 * returned to the node (expired).
+	 * */
+	private void printExpiredRequestOnRetrievedEvent(int timeSent){
+		System.out.println(field.getCurrentTime() 
+				+ ": " + this.toString()
+				+ " (" + getStringRepresentation() + ")"
+				+ " received expired event request sent at "
+				+ timeSent
+				+ ". Discarded.");
+	}
+	
+	/*
+	private void printFoundExpiredRequestMessage(RequestMessage message){
+		System.out.println(field.getCurrentTime()
+				+ ": request message with request id: "
+				+ message.getRequestId()
+				+ ", sent at time "
+				+ message.getTimeOfCreation()
+				+ " has expired, and been discarded by a node.");
+	}*/
 	
 	/**
 	 * <b><i>getStringRepresentation</i></b>
@@ -715,8 +729,6 @@ public class Node{
 		int result = 1;
 		result = prime * result
 				+ ((position == null) ? 0 : position.hashCode());
-		result = prime * result + signalStrength;
-		result = prime * result + timeOfMostRecentUpdate;
 		return result;
 	}
 
@@ -728,7 +740,7 @@ public class Node{
 	 * the compared object refer to the same (<code>this == other is true</code>), <b>or</b> if the <code>Position</code> of this <code>Node</code> is equal to
 	 * the <code>Position</code> of the compared <code>Node</code>.
 	 * </p>
-	 * @param obj - the <code>Object</code> to compare to this.
+	 * @param obj the <code>Object</code> to compare to this.
 	 * @return <code>true</code> if this <code>Node</code> and the compared object refer to the same, or if their positions correspond.
 	 * @see Position
 	 */
@@ -753,5 +765,17 @@ public class Node{
 			return false;
 		}
 		return true;
+	}
+	
+	/**
+	 * <b><i>reset</i></b>
+	 * <pre>public void reset()</pre>
+	 * <p>
+	 * Sets the internal node state as ready.
+	 * </p>
+	 * @see NodeState
+	 */
+	public void reset(){
+		setNodeState(NodeState.READY);
 	}
 }

@@ -1,5 +1,11 @@
 package nodebasis;
 
+/**
+ * 
+ * @author  Alexander Beliaev
+ * @version 1.0
+ * @since   2016-05-19
+ * */
 public class Task{
 
 	private Object dataObject;
