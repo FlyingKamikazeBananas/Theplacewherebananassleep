@@ -12,6 +12,15 @@ import coordination.Position;
 import nodebasis.Event;
 import nodebasis.Node;
 
+/**
+ * <p>
+ *
+ * </p>
+ * 
+ * @author  Alexander Beliaev, Nils Sundberg
+ * @version 1.0
+ * @since   2016-05-19
+ * */
 public class Field {
 	
 	private final int updateLimit;
@@ -27,6 +36,7 @@ public class Field {
 	private volatile int currentTime;
 	private int eventId;
 	private boolean hasLoadedNodeNetwork;
+	private boolean simulationIsRunning;
 	
 	public Field(int updateLimit, int eventChanceRange, 
 			int agentChanceRange, int requestIntervalRange,
@@ -51,15 +61,25 @@ public class Field {
 			setCurrentTime(0);
 			hasLoadedNodeNetwork = false;
 			eventId = 0;
+			simulationIsRunning = true;
 		}
 	}
 	
-	protected synchronized void update(FieldRunner runner){
+	protected synchronized void update(){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
 		Event event;
 		
+		/*if(this.getCurrentTime() % 250 == 0){
+			System.out.println(this.getCurrentTime() + ": running...");
+		}*/
+		
 		if(updateLimit >= getCurrentTime()) {
+			if(shouldGenerateNewRequests()){
+				for(Node node : requestNodesList){
+					node.generateNewTask(random.nextInt(eventId));
+				}
+			}
 			while (iterator.hasNext()) {
 				tempNode = iterator.next().getValue();
 				if(shouldGenerateNewEvent()){
@@ -70,14 +90,17 @@ public class Field {
 				}
 				tempNode.update();
 			}
-			if(shouldGenerateNewRequests()){
-				for(Node node : requestNodesList){
-					node.generateNewTask(random.nextInt(eventId));
-				}
+			
+			iterator = nodeMap.entrySet().iterator();
+			while (iterator.hasNext()) {
+				tempNode = iterator.next().getValue();
+				tempNode.reset();
 			}
+			
 			incrementCurrentTime();
-		}else{
-			runner.shutDown();
+		}else if(simulationIsRunning){
+			simulationIsRunning = false;
+			System.out.println("End of simulation");
 		}
 	}
 
@@ -117,7 +140,6 @@ public class Field {
 	}
     
 	private boolean shouldGenerateNewRequests(){
-		
 		return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
 	}
 	
@@ -198,6 +220,10 @@ public class Field {
 			representation += entry.getValue().getStringRepresentation() + "\n";
 		}
 		return representation;
+	}
+	
+	public boolean getSimulationIsRunning(){
+		return simulationIsRunning;
 	}
 	
 	private void setRecentlyChangedNodeNetwork(boolean recentlyChangedNodeNetwork){
