@@ -14,7 +14,9 @@ import coordination.Position;
 
 /**
  * <p>
- * The <code>Node</code> class 
+ * The <code>Node</code> class resembles a wireless point. I has the ability to communicate
+ * with nodes within its signal strength. The node creates tasks and stores them in
+ * a priority queue in order to prioritize more important happenings, and to keep things tidy.
  * </p>
  * <p>
  * Depending on what tasks the node hold, upon calling the update method the node
