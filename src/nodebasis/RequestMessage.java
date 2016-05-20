@@ -6,13 +6,12 @@ import java.util.Stack;
 
 import coordination.Position;
 
-//Behöver snyggas upp
-//säkrare användning av routingStack
-
 /**
- * <p>
- *
- * </p>
+ * The <code>RequestMessage</code> class extends the <code>Message</code> class, and is
+ * defined by the sole purpose of fetching information regarding a specific event,
+ * on the request of a node. Various complementary methods such as navigators <code>getReturnToSender()</code>
+ * and hasVisitedNode(Node) are provided to make it easier for a node to decide where the message 
+ * is supposed to be sent thenceforth.
  * 
  * @author  Alexander Beliaev
  * @version 1.0

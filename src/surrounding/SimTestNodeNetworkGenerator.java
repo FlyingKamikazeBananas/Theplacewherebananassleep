@@ -3,10 +3,17 @@ package surrounding;
 import java.util.HashMap;
 import java.util.Map;
 
-import main.SimTester;
 import nodebasis.Node;
 import coordination.Position;
 
+/** 
+ * Implementation of the NodeNetworkGenerator interface. For those who
+ * feel a tad bit extra lazy.
+ * 
+ * @author  Alexander Beliaev
+ * @version 1.0
+ * @since   2016-05-19
+ * */
 public class SimTestNodeNetworkGenerator implements NodeNetworkGenerator{
 
 	public static final int request_life = 45;

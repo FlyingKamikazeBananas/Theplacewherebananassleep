@@ -1,6 +1,9 @@
 package nodebasis;
 
 /**
+ * The ImplicitEvent is figuratively speaking the shadow of an event which previously has
+ * occurred within the node network. It holds the id of the event and a node which
+ * knows the direction to the node where the event originated.
  * 
  * @author  Alexander Beliaev
  * @version 1.0

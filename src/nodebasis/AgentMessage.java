@@ -1,14 +1,19 @@
 package nodebasis;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import coordination.Position;
 
 /**
+ * The <code>AgentMessage</code> class extends the <code>Message</code> class, and is
+ * defined by the sole purpose of spreading knowledge regarding the directions to various events
+ * which has occurred within the node network.</br>
+ * </br>
+ * It is important to note that whenever 
+ * a node receives an instance to this class, that the node foremost fetches data from
+ * the message before proceeding with updating the message itself. 
  * 
  * @author  Alexander Beliaev
  * @version 1.0
@@ -18,16 +23,13 @@ import coordination.Position;
 public class AgentMessage extends Message{
 	
 	private Map<Integer, ImplicitEvent> routingMap;
-	private Map<Integer, ImplicitEvent> routingMapDeepCopy;
-	private List<Integer> routingMapReference;
 	private Map<Position, Node> visitedNodes;
-	private Node previousNode;
 	
 	/**
 	 * <b>AgentMessage</b>
 	 * <pre>public AgentMessage(Node node, int messageLife)</pre>
 	 * <p>
-	 * Creates an <code>AgentMessage</code> object with the origin <code>Node</code> as a reference, and
+	 * Creates an <code>AgentMessage</code> object with the
 	 * the amount of lives it should have.
 	 * </p>
 	 * @param node the originating Node, where the message was created.
@@ -40,14 +42,10 @@ public class AgentMessage extends Message{
 		super(messageLife);
 		
 		routingMap = new HashMap<Integer, ImplicitEvent>();
-		routingMapDeepCopy = new HashMap<Integer, ImplicitEvent>();
-		routingMapReference = new ArrayList<Integer>();
 		visitedNodes = new HashMap<Position, Node>();
-		previousNode = node;
 		
 		for(Entry<Integer, ImplicitEvent> entry : node.getRoutingMap().entrySet()){
 			routingMap.put(entry.getKey(), entry.getValue());
-			routingMapDeepCopy.put(entry.getKey(), entry.getValue());
 		}
 	}
 	
@@ -55,8 +53,11 @@ public class AgentMessage extends Message{
 	 * <b>update</b>
 	 * <pre>protected void update(Node node)</pre>
 	 * <p>
-	 * This method must be called after data has been fetched from this message.</br>
+	 * Fetch data from the routing map (by calling <code>getRoutingMap()</code>) of this instance before calling this 
+	 * method. When this method is called the internal data is cleared, to
+	 * then be redefined with data from the given <code>Node</code>.</br>
 	 * </br>
+	 * This method must be called before passing on this message to another <code>Node</code>.
 	 * </p>
 	 * @param node currently visited <code>Node</code>.
 	 */

@@ -8,6 +8,13 @@ import java.util.Map;
 import nodebasis.Node;
 import coordination.Position;
 
+/**
+ * As of now this class is only used for testing purposes.
+ * It does pretty much the same thing as the <code>StandardNodeNetworkGenerator</code> class
+ * except that it reads from a file. This allows for further customization
+ * of the node network.
+ * 
+ * */
 public class FileNodeNetworkGenerator implements NodeNetworkGenerator{
 
 	private Field field;
