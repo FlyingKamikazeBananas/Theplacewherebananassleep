@@ -14,7 +14,7 @@ import coordination.Position;
 
 /**
  * <p>
- * The <code>Node</code> class ...
+ * The <code>Node</code> class 
  * </p>
  * <p>
  * Depending on what tasks the node hold, upon calling the update method the node
@@ -24,7 +24,8 @@ import coordination.Position;
  * <ul>
  * 		<li>creating an agent message</li>
  * 		<li>creating a request message</li>
- * 		<li>handling an agent message, or a request message.</li>
+ * 		<li>handling an agent message</li>
+ * 		<li>handling a request message.</li>
  * </ul>
  * Handling an agent message refer to (if not already) comparing and synchronizing each routing map, then
  * passing the message along to an adequate neighboring node.</br>
@@ -35,9 +36,9 @@ import coordination.Position;
  * If either message has reached or is past its expiration date, the node will disregard it
  * by removing it from the priority queue, and then try the next task instead.</br> 
  * </br>
- * If a newly created agent message could not be sent it will be put in a new
+ * If a newly created agent message could not be sent, it will be put in a new
  * task as "handling an agent message" and ultimately returned to the priority queue.</br>
- * Similarly if a newly request message could not be send it will be put in a new task
+ * Similarly if a newly created request message could not be sent, it will be put in a new task
  * and treated as "handling a request message".</br>
  * If the node could not process a message with the task of handling it, it will ultimately
  * return it to the priority queue.
@@ -163,7 +164,7 @@ public class Node{
 					}else{
 						newTaskA = new Task((AgentMessage)message,
 								TaskAction.HANDLE_AGENTMESSAGE);
-						newTaskA.incrementIndex();
+						newTaskA.incrementTries();
 						failedTasks.add(newTaskA);
 					}
 					break;
@@ -179,15 +180,14 @@ public class Node{
 					}else{
 						newTaskR = new Task((RequestMessage)message,
 								TaskAction.HANDLE_REQUESTMESSAGE);
-						newTaskR.incrementIndex();
+						newTaskR.incrementTries();
 						failedTasks.add(newTaskR);
 					}
 					break;
 				case HANDLE_AGENTMESSAGE:
 					message = (AgentMessage)currentTask.getDataObject();
 					
-					if(currentTask.getHandleIntex() == 0){
-						
+					if(currentTask.getNumberOfTries() == 0){
 						update((AgentMessage)message);
 						((AgentMessage)message).update(this);
 						((AgentMessage)message).decrementLifespan();
@@ -205,7 +205,7 @@ public class Node{
 				case HANDLE_REQUESTMESSAGE:
 					message = (RequestMessage)currentTask.getDataObject();
 					
-					if(currentTask.getHandleIntex() == 0){
+					if(currentTask.getNumberOfTries() == 0){
 						((RequestMessage)message).update(this);
 						((RequestMessage)message).decrementLifespan();
 					}
@@ -297,7 +297,7 @@ public class Node{
 	 * */
 	private void returnToTaskQueue(ArrayList<Task> taskList){
 		for(Task task : taskList){
-			task.incrementIndex();
+			task.incrementTries();
 			taskQueue.add(task);
 		}
 	}

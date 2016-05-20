@@ -1,10 +1,13 @@
 package nodebasis;
 
 /**
+ * A <code>Message</code> is a means for the a node to spread or fetch information between
+ * other nodes. The class implements the Lifespan interface.
  * 
  * @author  Alexander Beliaev
  * @version 1.0
  * @since   2016-05-19
+ * @see Lifespan
  * */
 public abstract class Message implements Lifespan{
 	

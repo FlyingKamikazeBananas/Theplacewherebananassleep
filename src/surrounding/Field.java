@@ -10,18 +10,23 @@ import java.util.Random;
 
 import coordination.Position;
 import nodebasis.Event;
+import nodebasis.Message;
 import nodebasis.Node;
 
 /**
- * <p>
- *
- * </p>
+ * The <code>Field</code> class holds the node network. It is its 
+ * responsibility to make sure each node is updated, and made ready
+ * for the next iteration, each iteration. It is the <code>Field</code> class
+ * which initially determines which nodes are supposed to create messages and when.</br>
+ * </br>
+ * The class allows for some multi-threading. See each specific method for
+ * further details.
  * 
  * @author  Alexander Beliaev, Nils Sundberg
  * @version 1.0
  * @since   2016-05-19
  * */
-public class Field {
+public class Field{
 	
 	private final int updateLimit;
 	private final int eventChanceRange;
@@ -32,12 +37,33 @@ public class Field {
 	
 	private HashMap<Position, Node> nodeMap;
 	private List<Node> requestNodesList;
-	private volatile boolean recentlyChangedNodeNetwork;
+	private boolean recentlyChangedNodeNetwork;
 	private volatile int currentTime;
 	private int eventId;
-	private boolean hasLoadedNodeNetwork;
-	private boolean simulationIsRunning;
+	private volatile boolean hasLoadedNodeNetwork;
+	private volatile boolean simulationIsRunning;
 	
+	/**
+	 * <b>Field</b>
+	 * <pre>public Field(int updateLimit, int eventChanceRange, 
+	 * int agentChanceRange, int requestIntervalRange,
+	 * int numberOfRequestNodes)</pre>
+	 * <p>
+	 * Creates a <code>Field</code> object with the amount of updates the simulation hold,
+	 * the event chance range (the chance it then calculated by 1/the input value), the agent
+	 * chance range, the interval between request message creations, and the number of request
+	 * nodes.
+	 * </p>
+	 * @param updateLimit the amount of updates the simulation should run.
+	 * @param eventChanceRange the request chance range.
+	 * @param agentChanceRange the agent chance range.
+	 * @param requestIntervalRange the number of updates between request message creations.
+	 * @param numberOfRequestNodes number of request nodes.
+	 * @throws java.lang.IllegalArgumentException if either of the given arguments 
+	 * are equal to or less than zero.
+	 * @see Message
+	 * @see Node
+	 */
 	public Field(int updateLimit, int eventChanceRange, 
 			int agentChanceRange, int requestIntervalRange,
 			int numberOfRequestNodes) throws IllegalArgumentException{
@@ -56,15 +82,28 @@ public class Field {
 			random = new Random();
 			nodeMap = new HashMap<Position, Node>();
 			requestNodesList = new ArrayList<Node>(numberOfRequestNodes);
-			
 			setRecentlyChangedNodeNetwork(false);
 			setCurrentTime(0);
 			hasLoadedNodeNetwork = false;
 			eventId = 0;
-			simulationIsRunning = true;
+			simulationIsRunning = false;
 		}
 	}
 	
+	/**
+	 * <b>update</b>
+	 * <pre>protected synchronized void update()</pre>
+	 * <p>
+	 * Updates all nodes in the node network by calling all of their subsequent update methods.
+	 * This method does this indiscriminately, meaning that it is up to each individual node
+	 * to decide if it should update or not. This method also decides when and where events
+	 * should spawn, and if an agent message should follow; and where and when the requests should
+	 * be generated and sent.</br>
+	 * </br>
+	 * When each node has been updated, all the nodes will be iterated over again to reset these
+	 * to "ready", meaning they are ready to be updated again.
+	 * </p>
+	 */
 	protected synchronized void update(){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
@@ -74,7 +113,7 @@ public class Field {
 			System.out.println(this.getCurrentTime() + ": running...");
 		}*/
 		
-		if(updateLimit >= getCurrentTime()) {
+		if(updateLimit >= getCurrentTime() && simulationIsRunning) {
 			if(shouldGenerateNewRequests()){
 				for(Node node : requestNodesList){
 					node.generateNewTask(random.nextInt(eventId));
@@ -104,6 +143,11 @@ public class Field {
 		}
 	}
 
+	/*
+	 * Helper method.
+	 * 
+	 * Generates the list over which nodes should generate requests.
+	 * */
 	private void createRequestNodesList(){
 		List<Integer> list = new ArrayList<Integer>(numberOfRequestNodes);
 		int temp;
@@ -126,25 +170,56 @@ public class Field {
 		}
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Generates and returns a new event id.
+	 * */
 	private int newEventId(){
 		eventId++;
 		return eventId;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Checks if a new event should be generated.
+	 * */
 	private boolean shouldGenerateNewEvent(){
 		return random.nextInt(eventChanceRange) == 0;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Checks if a new agent message should be generated.
+	 * */
 	private boolean shouldGenerateNewAgentMsg(){
 		return random.nextInt(agentChanceRange) == 0;
 	}
     
+	/*
+	 * Helper method.
+	 * 
+	 * Checks if a new request message should be generated.
+	 * */
 	private boolean shouldGenerateNewRequests(){
 		return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
 	}
 	
+	/**
+	 * <b>loadNodeNetwork</b>
+	 * <pre>public void loadNodeNetwork(HashMap<Position, Node> nodeMap)</pre>
+	 * <p>
+	 * This method must be called with an instantiated <code>HashMap</code> containing
+	 * the node network, before the simulation can be started. If the method is called
+	 * with a <code>null</code> <code>HashMap</code> nothing will happen.
+	 * </br>
+	 * </p>
+	 * @param nodeMap the <code>HashMap</code> containing the node network.
+	 */
 	public void loadNodeNetwork(HashMap<Position, Node> nodeMap){
-		if(!hasLoadedNodeNetwork){
+		if(!hasLoadedNodeNetwork && nodeMap != null){
 			setRecentlyChangedNodeNetwork(true);
 			
 			for(Map.Entry<Position, Node> entry : nodeMap.entrySet()){
@@ -161,12 +236,22 @@ public class Field {
 		}
 	}
 	
-	/*
-	 * Rather heavy operation.
-	 * Should only use on nodes when necessary during
-	 * live simulation. 
-	 * */
-	public synchronized ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
+	/**
+	 * <b>loadNodeNetwork</b>
+	 * <pre>public void loadNodeNetwork(HashMap<Position, Node> nodeMap)</pre>
+	 * <p>
+	 * This operation is somewhat expensive, and if possible should be used
+	 * before the start of the simulation.</br>
+	 * </br>
+	 * By giving the method a node it will find all nodes within the range 
+	 * of the specified node, and return an <code>ArrayList</code> containing
+	 * all of the found nodes.
+	 * </p>
+	 * @param nodeAtCentrum the node whose signal strength is going to be
+	 * tested and compared against other nodes.
+	 * @return and <code>ArrayList</code> containing all found nodes.
+	 */
+	public ArrayList<Node> getNodesWithinRangeofNode(Node nodeAtCentrum){
 		int signalStrength = nodeAtCentrum.getSignalStrength();
 		int centrumX = nodeAtCentrum.getPosition().getX();
 		int centrumY = nodeAtCentrum.getPosition().getY();
@@ -201,19 +286,55 @@ public class Field {
 		return listToReturn;
 	}
 	
-
+	/**
+	 * <b>getCurrentTime</b>
+	 * <pre>public synchronized int getCurrentTime()</pre>
+	 * <p>
+	 * Returns the current time of the simulation.
+	 * </p>
+	 * @return the current amount of elapsed updates.
+	 */
 	public synchronized int getCurrentTime(){
 		return currentTime;
 	}
 	
-	public boolean getHasLoadedNodeNetwork(){
+	/**
+	 * <b>getHasLoadedNodeNetwork</b>
+	 * <pre>public synchronized boolean getHasLoadedNodeNetwork()</pre>
+	 * <p>
+	 * Returns whether or not a node network has been loaded by the field class.
+	 * </p>
+	 * @return <code>true</code> if a node network has been loaded, <code>false</code>
+	 * otherwise.
+	 */
+	public synchronized boolean getHasLoadedNodeNetwork(){
 		return hasLoadedNodeNetwork;
 	}
 	
-	public synchronized boolean getRecentlyChangedNodeNetwork(){
+	/**
+	 * <b>getHasLoadedNodeNetwork</b>
+	 * <pre>public boolean getHasLoadedNodeNetwork()</pre>
+	 * <p>
+	 * Returns whether or not the node network recently has been modified.</br>
+	 * No use as of this version.
+	 * </p>
+	 * @return <code>true</code> if the node network has been modified, <code>false</code>
+	 * otherwise.
+	 */
+	public boolean getRecentlyChangedNodeNetwork(){
 		return recentlyChangedNodeNetwork;
 	}
 	
+	/**
+	 * <b>getStringRepresentation</b>
+	 * <pre>public String getStringRepresentation()</pre>
+	 * <p>
+	 * Returns a string representation of the node network. Do not confuse this with
+	 * a toString method. See the <code>getStringRepresentation</code> method in the
+	 * <code>Node</code> class for further details.
+	 * </p>
+	 * @return the string representation of the node network.
+	 */
 	public String getStringRepresentation(){
 		String representation = "";
 		for(Map.Entry<Position, Node> entry : nodeMap.entrySet()){
@@ -222,22 +343,64 @@ public class Field {
 		return representation;
 	}
 	
-	public boolean getSimulationIsRunning(){
+	/**
+	 * <b>getSimulationIsRunning</b>
+	 * <pre>public synchronized boolean getSimulationIsRunning()</pre>
+	 * <p>
+	 * Returns whether or not the simulation is currently running.
+	 * </p>
+	 * @return <code>true</code> if the simulation is running, <code>false</code>
+	 * otherwise.
+	 */
+	public synchronized boolean getSimulationIsRunning(){
 		return simulationIsRunning;
 	}
 	
+	/**
+	 * <b>setSimulationIsRunning</b>
+	 * <pre>public synchronized void setSimulationIsRunning()</pre>
+	 * <p>
+	 * Sets the simulation to run or stop. Only works as a means to start
+	 * the simulation once.
+	 * </p>
+	 * @param simulationIsRunning <code>true</code> to start, <code>false</code> to stop.
+	 */
+	public synchronized void setSimulationIsRunning(boolean simulationIsRunning){
+		this.simulationIsRunning = simulationIsRunning;
+	}
+	
+	/*
+	 * Helper method.
+	 * 
+	 * Sets if the node network has been modified. 
+	 * */
 	private void setRecentlyChangedNodeNetwork(boolean recentlyChangedNodeNetwork){
 		this.recentlyChangedNodeNetwork = recentlyChangedNodeNetwork;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Sets the current time.
+	 * */
 	private void setCurrentTime(int currentTime){
 		this.currentTime = currentTime;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Increments the current time.
+	 * */
 	private void incrementCurrentTime(){
 		currentTime++;
 	}
 	
+	/*
+	 * Helper method.
+	 * 
+	 * Tells a specific node to update its list over neighbors.
+	 * */
 	private void requestNeighbourUpdate(Node node){
 		node.updateNeighbours();
 	}

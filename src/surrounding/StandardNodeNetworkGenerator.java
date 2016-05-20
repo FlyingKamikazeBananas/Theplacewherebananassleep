@@ -6,7 +6,15 @@ import java.util.Map;
 import nodebasis.Node;
 import coordination.Position;
 
-
+/**
+ * The <code>StandardNodeNetworkGenerator</code> generates a grid 
+ * of nodes (network), based on specified number of nodes, their distance
+ * to one and another, etc.
+ * 
+ * @author  Alexander Beliaev
+ * @version 1.0
+ * @since   2016-05-19
+ * */
 public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 
 	private Map<Position, Node> map;
@@ -18,6 +26,25 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 	private final int requestLife;
 	private final int agentLife;
 	
+	/**
+	 * <b>StandardNodeNetworkGenerator</b>
+	 * <pre>public StandardNodeNetworkGenerator(int numNodesX, int numNodesY,
+			int nodeDistance, int nodeSignalStrength,
+			int requestLife, int agentLife,
+			Field field)</pre>
+	 * <p>
+	 * Creates a <code>StandardNodeNetworkGenerator</code> object to
+	 * prepare for the creation of a node network grid.
+	 * </p>
+	 * @param numNodesX the number of nodes on the x-axis.
+	 * @param numNodesY the number of nodes on the y-axis.
+	 * @param nodeDistance the distance between the nodes.
+	 * @param nodeSignalStrength the signal strength of the nodes.
+	 * @param agentLife the amount of lives this the nodes should instantiate their agent messages
+	 * with.
+	 * @param requestLife the amount of lives this the nodes should instantiate their request messages
+	 * with.
+	 */
 	public StandardNodeNetworkGenerator(int numNodesX, int numNodesY,
 			int nodeDistance, int nodeSignalStrength,
 			int requestLife, int agentLife,
@@ -32,12 +59,21 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 		map = new HashMap<Position, Node>();
 		
 	}
-	
+	/**
+	 * <b><i>generate</i></b>
+	 * <pre>public HashMap<Position, Node> generate()</pre>
+	 * <p>
+	 * Generates the node network and returns it in a <code>HashMap</code>.
+	 * Calling this method has no effect other than returning the generated node network
+	 * again, if called additional times after already called it once.
+	 * </p>
+	 * @return the node network.
+	 */
 	@Override
 	public HashMap<Position, Node> generate(){
 		Node tempNode;
 		Position tempPosition;
-		if(map.isEmpty()){
+		if(map != null && map.isEmpty()){
 			for(int y=0; y<numNodesY; y++){
 				for(int x=0; x<numNodesX; x++){
 					tempPosition = new Position(x*nodeDistance, 

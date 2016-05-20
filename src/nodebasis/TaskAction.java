@@ -1,6 +1,8 @@
 package nodebasis;
 
 /**
+ * The enumeration TaskAction holds the various executable tasks a
+ * node can manage.
  * 
  * @author  Alexander Beliaev
  * @version 1.0
@@ -16,7 +18,15 @@ public enum TaskAction {
 		this.importance = importance;
 	}
 	
-	
+	/**
+	 * <b>getTaskActionImportance</b>
+	 * <pre>public int getTaskActionImportance()</pre>
+	 * <p>
+	 * Returns the value representation of the importance 
+	 * of performing the specific action.
+	 * </p>
+	 * @return the importance of the action.
+	 */
 	public int getTaskActionImportance(){
 		return this.importance;
 	}
