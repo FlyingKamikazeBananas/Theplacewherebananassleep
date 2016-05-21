@@ -18,13 +18,11 @@ public class Request implements Lifespan{
 	private int currentRequestLifespan;
 	
 	/**
-	 * <b>Request</b>
-	 * <pre>public Request(int requestLifespan)</pre>
 	 * <p>
 	 * Creates a <code>Request</code> object with the 
 	 * amount of lives the request message initially had.
 	 * </p>
-	 * @param messageLife the amount of lives the message should possess.
+	 * @param requestLifespan the amount of lives the request should possess.
 	 * @throws java.lang.IllegalArgumentException if the given amount of lives are equal
 	 * to or less than zero.
 	 */
@@ -35,8 +33,6 @@ public class Request implements Lifespan{
 	}
 	
 	/**
-	 * <b>decrementLifespan</b>
-	 * <pre>public void decrementLifespan()</pre>
 	 * <p>
 	 * Decrements the current lifespan of the request by one.
 	 * </p>
@@ -47,8 +43,6 @@ public class Request implements Lifespan{
 	}
 
 	/**
-	 * <b>isDead</b>
-	 * <pre>public boolean isDead()</pre>
 	 * <p>
 	 * Returns if the request has expired.
 	 * </p>
@@ -61,8 +55,6 @@ public class Request implements Lifespan{
 	}
 	
 	/**
-	 * <b>reviveRequest</b>
-	 * <pre>public void reviveRequest()</pre>
 	 * <p>
 	 * Revives the request, returning it to full health.
 	 * </p>
@@ -73,8 +65,6 @@ public class Request implements Lifespan{
 	}
 	
 	/**
-	 * <b>getNumberOfTimesRevived</b>
-	 * <pre>public int getNumberOfTimesRevived()</pre>
 	 * <p>
 	 * Returns how many times the request has been revived.
 	 * </p>
@@ -85,8 +75,6 @@ public class Request implements Lifespan{
 	}
 	
 	/**
-	 * <b>getLife</b>
-	 * <pre>public int getLife()</pre>
 	 * <p>
 	 * Returns how many lives the request currently possesses.
 	 * </p>

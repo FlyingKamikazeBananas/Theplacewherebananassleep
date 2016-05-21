@@ -7,6 +7,7 @@ import coordination.Position;
 
 /**
  * Implement this interface when creating a new means to generate a node network.
+ * Implementing it does however not grant access to further functionality (yet).
  * 
  * @author  Alexander Beliaev
  * @version 1.0

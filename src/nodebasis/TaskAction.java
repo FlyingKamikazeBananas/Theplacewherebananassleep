@@ -19,8 +19,6 @@ public enum TaskAction {
 	}
 	
 	/**
-	 * <b>getTaskActionImportance</b>
-	 * <pre>public int getTaskActionImportance()</pre>
 	 * <p>
 	 * Returns the value representation of the importance 
 	 * of performing the specific action.

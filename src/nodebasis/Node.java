@@ -43,7 +43,11 @@ import coordination.Position;
  * Similarly if a newly created request message could not be sent, it will be put in a new task
  * and treated as "handling a request message".</br>
  * If the node could not process a message with the task of handling it, it will ultimately
- * return it to the priority queue.
+ * return it to the priority queue.</br>
+ * </br>
+ * An instance of <code>Node</code> allows for external monitoring if it has received
+ * a returning request message, and/or if an agent or request message has been discarded
+ * by it.
  * </p>
  * 
  * @author  Alexander Beliaev
@@ -57,18 +61,17 @@ public class Node{
 	
 	private PriorityQueue<Task> taskQueue;
 	private Map<Integer, ImplicitEvent> routingMap;
-	private Map<Integer, Request> requestMap;
+	private Map<String, Request> requestMap;
 	private Map<Integer, Event> eventMap;
 	private List<Node> neighboursList;
 	private Position position;
 	private NodeState nodeState;
 	private int signalStrength;
 	private Field field;
+	private ExpirationReader expirationReader;
+	private RequestReader requestReader;
 	
 	/**
-	 * <b>Node</b>
-	 * <pre>public Node(Field field, Position position, int signalStrength,
-			int agentLife, int requestLife)</pre>
 	 * <p>
 	 * Creates a <code>Node</code> object with the specified properties.
 	 * </p>
@@ -112,13 +115,11 @@ public class Node{
 			eventMap = new HashMap<Integer, Event>();
 			neighboursList = new ArrayList<Node>();
 			routingMap = new HashMap<Integer, ImplicitEvent>();
-			requestMap = new HashMap<Integer, Request>();
+			requestMap = new HashMap<String, Request>();
 		}
 	}
 	
 	/**
-	 * <b><i>update</i></b>
-	 * <pre>public void update()</pre>
 	 * <p>
 	 * The update method completes up to one task
 	 * specified by earlier generated <code>Task</code>s, every
@@ -144,10 +145,10 @@ public class Node{
 		Request tempRequest;
 		Message message;
 		ArrayList<Task> failedTasks;
-		Iterator<Map.Entry<Integer, Request>> iterator;
+		Iterator<Map.Entry<String, Request>> iterator;
 		boolean successfulTask = false;
 		
-		for(Map.Entry<Integer, Request> entry : requestMap.entrySet()){
+		for(Map.Entry<String, Request> entry : requestMap.entrySet()){
 			entry.getValue().decrementLifespan();
 		}
 		
@@ -159,7 +160,7 @@ public class Node{
 				switch(currentTask.getAction()){
 				case CREATE_AGENTMESSAGE:
 					Task newTaskA;
-					message = new AgentMessage(this, agentLife);
+					message = new AgentMessage(this, agentLife, field.getCurrentTime());
 					taskQueue.poll();
 					if(sendMessage((AgentMessage)message)){
 						successfulTask = true;
@@ -196,6 +197,12 @@ public class Node{
 					}
 					
 					if(((AgentMessage)message).isDead()){
+						if(expirationReader != null && (expirationReader.getReaderMode() == 
+								ExpirationReader.ReaderMode.ALL || 
+								expirationReader.getReaderMode() == 
+										ExpirationReader.ReaderMode.EXPIRED_AGENTS)){
+							expirationReader.readIdOfExpiredObject(((AgentMessage)message).getAgentId());
+						}
 						taskQueue.poll();
 					}else if(sendMessage((AgentMessage)message)){
 						taskQueue.poll();
@@ -218,14 +225,14 @@ public class Node{
 								.getRequestId())){
 							printEvent(((RequestMessage)message).getEvent(),
 									(RequestMessage)message);
+							if(requestReader != null){
+								requestReader.readSuccessfulRequestId(((RequestMessage)message).getRequestId());
+							}
 							requestMap.remove(((RequestMessage)message)
 								.getRequestId());
 						}else{
 							printExpiredRequestOnRetrievedEvent(((RequestMessage)message).getEvent().getTime());
 						}
-					}else if(((RequestMessage)message).isDead()){
-						//printFoundExpiredRequestMessage((RequestMessage)message);
-						taskQueue.poll();
 					}else if(((RequestMessage)message).getReturnToSender()){
 						if(sendMessage(((RequestMessage)message).getReturnAddress(),
 								((RequestMessage)message))){
@@ -235,6 +242,15 @@ public class Node{
 						}else{
 							failedTasks.add(taskQueue.poll());
 						}
+					}else if(((RequestMessage)message).isDead()){
+						//printFoundExpiredRequestMessage((RequestMessage)message);
+						if(expirationReader != null && (expirationReader.getReaderMode() == 
+								ExpirationReader.ReaderMode.ALL || 
+								expirationReader.getReaderMode() == 
+										ExpirationReader.ReaderMode.EXPIRED_REQUESTS)){
+							expirationReader.readIdOfExpiredObject(((RequestMessage)message).getRequestId());
+						}
+						taskQueue.poll();
 					}else{
 						if(sendMessage((RequestMessage)message)){
 							taskQueue.poll();
@@ -305,29 +321,34 @@ public class Node{
 	}
 	
 	/*
-	 * Helper method.
-	 * 
-	 * Attempts to send a request message (without specified receiving node).
-	 * It does it in this order, if any of the previous fails:
-	 * 		- first checking in the routing table if there is a known
-	 * 			path to the event,
-	 * 		- then checking any of the adjacent nodes which hasn't
-	 * 			yet passed along this request message,
-	 * 		- and lastly checking any adjacent nodes if they are ready
-	 * 			to receive.
-	 * 
-	 * If all of the above fail, then the node will abandon the associated task
-	 * until next update.
-	 * 
 	 * Notes: if the node has a neighboring node which knows the way
 	 * to a specific event, it would be folly to send it to a node
 	 * which doesn't know the way. Hence the method can return true
-	 * or false in the cluster contained in the first if-statement.
-	 * 
+	 * or false in the cluster contained in the first if-statement.  
+	 * */
+	/**
+	 * <p>
+	 * Attempts to send a request message (without specified receiving node).
+	 * It does it in this order, if any of the previous fails:
+	 * <ul>
+	 * 		<li>first checking in the routing table if there is a known
+	 * 			path to the event,</li>
+	 * 		<li>then checking any of the adjacent nodes which hasn't
+	 * 			yet passed along this request message,</li>
+	 * 		<li>and lastly checking any adjacent nodes if they are ready
+	 * 			to receive.</li>
+	 * </ul></br>
+	 * If all of the above fail, then the node will abandon the associated task
+	 * until next update.</br>
+	 * </br>
 	 * The method either returns true or false, depending on if
 	 * the message was successfully sent or not.
-	 * */
-	private boolean sendMessage(RequestMessage message){
+	 * </p>
+	 * @param message the message to send.
+	 * @return <code>true</code> if the message was sent, <code>false</code> otherwise.
+	 * @see RequestMessage
+	 */
+	protected boolean sendMessage(RequestMessage message){
 		Node legitNode;
 		boolean visitedAll = true;
 		
@@ -361,23 +382,27 @@ public class Node{
 		return false;
 	}
 	
-	/*
-	 * Helper method.
-	 * 
+	/**
+	 * <p>
 	 * Attempts to send an agent message (without specified receiving node).
 	 * It does it in this order, if any of the previous fails:
-	 * 		- first checking any of the adjacent nodes which hasn't
-	 * 			yet passed along this agent message,
-	 * 		- and lastly checking any adjacent nodes if they are ready
-	 * 			to receive.
-	 * 
+	 * <ul>
+	 * 		<li>first checking any of the adjacent nodes which hasn't
+	 * 			yet passed along this agent message,</li>
+	 * 		<li>and lastly checking any adjacent nodes if they are ready
+	 * 			to receive.</li>
+	 * </ul></br>
 	 * If all of the above fail, then the node will abandon the associated task
-	 * until next update.
-	 * 
+	 * until next update.</br>
+	 * </br>
 	 * The method either returns true or false, depending on if
 	 * the message was successfully sent or not.
-	 * */
-	private boolean sendMessage(AgentMessage message){
+	 * </p>
+	 * @param message the message to send.
+	 * @return <code>true</code> if the message was sent, <code>false</code> otherwise.
+	 * @see AgentMessage
+	 */
+	protected boolean sendMessage(AgentMessage message){
 		boolean visitedAll = true;
 		
 		for(Node node : neighboursList){
@@ -400,31 +425,20 @@ public class Node{
 		return false;
 	}
 	
-	/*
-	 * Helper method.
-	 * 
-	 * Attempts to send a request message to a specific node.
-	 * 
+	/**
+	 * <p>
+	 * Attempts to send a request message to a specific node. The attempt
+	 * will only be successful if the receiving node is ready.</br>
+	 * </br>
 	 * The method either returns true or false, depending on if
 	 * the message was successfully sent or not.
-	 * */
-	private boolean sendMessage(Node node, RequestMessage message){
-		if(node.getNodeState() == NodeState.READY){
-			node.generateNewTask(message);
-			return true;
-		}
-		return false;
-	}
-	
-	/*
-	 * Helper method.
-	 * 
-	 * Attempts to send an agent message to a specific node.
-	 * 
-	 * The method either returns true or false, depending on if
-	 * the message was successfully sent or not.
-	 * */
-	private boolean sendMessage(Node node, AgentMessage message){
+	 * </p>
+	 * @param message the message to send.
+	 * @param node the node to receive the message.
+	 * @return <code>true</code> if the message was sent, <code>false</code> otherwise.
+	 * @see RequestMessage
+	 */
+	protected boolean sendMessage(Node node, RequestMessage message){
 		if(node.getNodeState() == NodeState.READY){
 			node.generateNewTask(message);
 			return true;
@@ -433,8 +447,27 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>generateNewEvent</i></b>
-	 * <pre>public Event generateNewEvent(int id)</pre>
+	 * <p>
+	 * Attempts to send a agent message to a specific node. The attempt
+	 * will only be successful if the receiving node is ready.</br>
+	 * </br>
+	 * The method either returns true or false, depending on if
+	 * the message was successfully sent or not.
+	 * </p>
+	 * @param message the message to send.
+	 * @param node the node to receive the message.
+	 * @return <code>true</code> if the message was sent, <code>false</code> otherwise.
+	 * @see AgentMessage
+	 */
+	protected boolean sendMessage(Node node, AgentMessage message){
+		if(node.getNodeState() == NodeState.READY){
+			node.generateNewTask(message);
+			return true;
+		}
+		return false;
+	}
+	
+	/**
 	 * <p>
 	 * Generates a new <code>Event</code> with the specified id.
 	 * The <code>Event</code> is then stored by the <code>Node</code>
@@ -455,8 +488,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>generateNewTask</i></b>
-	 * <pre>public void generateNewTask(Event event)</pre>
 	 * <p>
 	 * Generates a new internal <code>Task</code> for the <code>Node</code>
 	 * telling it to create a new <code>AgentMessage</code> with the
@@ -478,8 +509,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>generateNewTask</i></b>
-	 * <pre>public void generateNewTask(Integer id)</pre>
 	 * <p>
 	 * Generates a new internal <code>Task</code> for the <code>Node</code>
 	 * telling it to create a new <code>RequestMessage</code> with the
@@ -511,34 +540,40 @@ public class Node{
 		setNodeState(NodeState.BUSY);
 	}
 	
-	/*
-	 * Helper method.
-	 * 
-	 * This method is used between nodes. It generates a new Task with
-	 * the specified agent message, and then adds it to the priority queue
-	 * which the node hold. The Node is marked as updated when this method is called.
-	 * */
-	private void generateNewTask(AgentMessage message){
+	/**
+	 * <p>
+	 * Generates a new internal <code>Task</code> for the <code>Node</code>
+	 * telling it to handle an <code>AgentMessage</code>. When called
+	 * the node is marked as busy.
+	 * </p>
+	 * @param message the message to handle.
+	 * @see AgentMessage
+	 */
+	protected void generateNewTask(AgentMessage message){
 		addMessageTask(message, TaskAction.HANDLE_AGENTMESSAGE);
 	}
 	
-	/*
-	 * Helper method.
-	 * 
-	 * This method is used between nodes. It generates a new Task with
-	 * the specified request message, and then adds it to the priority queue
-	 * which the node hold. The Node is marked as updated when this method is called.
-	 * 
-	 * More specifically if an equal request message is found within the priority queue of 
+	/**
+	 * <p>
+	 * Generates a new internal <code>Task</code> for the <code>Node</code>
+	 * telling it to handle a <code>RequestMessage</code>. When called
+	 * the node is marked as busy.</br>
+	 * </br>
+	 * More specifically if an equal request message is found being handled by 
 	 * the node the following is checked and performed:
-	 * 		- if either message is on its way back to the originating node where it was
-	 * 			created, the one on the way back is stored and the other disregarded.
-	 * 		- if both are on their way back to the originating node, or if both aren't
+	 * <ul>
+	 * 		<li>if either message is on its way back to the originating node where it was
+	 * 			created, the one on the way back is stored and the other discarded.</li>
+	 * 		<li>if both are on their way back to the originating node, or if both aren't
 	 * 			then they are compared with the compareTo method in the RequestMessage class.
 	 * 			The input message is only used if the compareTo method return a value greater
-	 * 			than zero.
-	 * */
-	private void generateNewTask(RequestMessage message){
+	 * 			than zero.</li>
+	 * </ul>
+	 * </p>
+	 * @param message the message to handle.
+	 * @see RequestMessage
+	 */
+	protected void generateNewTask(RequestMessage message){
 		Iterator<Task> iterator;
 		Task currentTask;
 		boolean foundAlike = false;
@@ -573,8 +608,6 @@ public class Node{
 	
 	
 	/**
-	 * <b><i>getNodeState</i></b>
-	 * <pre>protected NodeState getNodeState()</pre>
 	 * <p>
 	 * Returns the current state of the node.
 	 * </p>
@@ -585,8 +618,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>getRoutingMap</i></b>
-	 * <pre>protected HashMap<Integer, ImplicitEvent> getRoutingMap()</pre>
 	 * <p>
 	 * Returns the current routing map which this node holds. The
 	 * routing map tells from which adjacent nodes it received information
@@ -600,8 +631,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>getEventById</i></b>
-	 * <pre>protected Event getEventById(int id)</pre>
 	 * <p>
 	 * Returns the <code>Event</code> corresponding to the specified
 	 * event id, or <code>null</code> if no event with such id 
@@ -616,8 +645,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>getSignalStrength</i></b>
-	 * <pre>public int getSignalStrength()</pre>
 	 * <p>
 	 * Returns the int representation of the signal strength for this <code>Node</code>.
 	 * </p>
@@ -628,8 +655,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>getPosition</i></b>
-	 * <pre>public Position getPosition()</pre>
 	 * <p>
 	 * Returns the position object of this <code>Node</code>.
 	 * </p>
@@ -641,8 +666,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>updateNeighbours</i></b>
-	 * <pre>public void updateNeighbours()</pre>
 	 * <p>
 	 * Signals this <code>Node</code> to revise its list over neighboring nodes.
 	 * The call has no effect if the <code>Field</code> in which the <code>Node</code>
@@ -708,8 +731,28 @@ public class Node{
 	}*/
 	
 	/**
-	 * <b><i>getStringRepresentation</i></b>
-	 * <pre>public String getStringRepresentation()</pre>
+	 * <p>
+	 * Sets an <code>ExpirationReader</code> to this specific node.
+	 * </p>
+	 * @param expirationReader the reader.
+	 * @see ExpirationReader
+	 */
+	public void setExpirationReader(ExpirationReader expirationReader){
+		this.expirationReader = expirationReader;
+	}
+	
+	/**
+	 * <p>
+	 * Sets a <code>RequestReader</code> to this specific node.
+	 * </p>
+	 * @param requestReader the reader.
+	 * @see RequestReader
+	 */
+	public void setRequestReader(RequestReader requestReader){
+		this.requestReader = requestReader;
+	}
+	
+	/**
 	 * <p>
 	 * Returns a <code>String</code> representation of the <code>Node</code> on 
 	 * the form:
@@ -735,8 +778,6 @@ public class Node{
 	}
 
 	/**
-	 * <b><i>equals</i></b>
-	 * <pre>public boolean equals(Object obj)</pre>
 	 * <p>
 	 * Returns <code>true</code> if and only if this <code>Node</code> and 
 	 * the compared object refer to the same (<code>this == other is true</code>), <b>or</b> if the <code>Position</code> of this <code>Node</code> is equal to
@@ -770,8 +811,6 @@ public class Node{
 	}
 	
 	/**
-	 * <b><i>reset</i></b>
-	 * <pre>public void reset()</pre>
 	 * <p>
 	 * Sets the internal node state as ready.
 	 * </p>

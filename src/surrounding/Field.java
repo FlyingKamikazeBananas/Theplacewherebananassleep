@@ -34,6 +34,9 @@ public class Field{
 	private final int requestIntervalRange;
 	private final int numberOfRequestNodes;
 	private final Random random;
+	private final boolean enableAgentCreation;
+	private final boolean enableEventCreation;
+	private final boolean enableRequestCreation;
 	
 	private HashMap<Position, Node> nodeMap;
 	private List<Node> requestNodesList;
@@ -44,15 +47,30 @@ public class Field{
 	private volatile boolean simulationIsRunning;
 	
 	/**
-	 * <b>Field</b>
-	 * <pre>public Field(int updateLimit, int eventChanceRange, 
-	 * int agentChanceRange, int requestIntervalRange,
-	 * int numberOfRequestNodes)</pre>
 	 * <p>
 	 * Creates a <code>Field</code> object with the amount of updates the simulation hold,
 	 * the event chance range (the chance it then calculated by 1/the input value), the agent
 	 * chance range, the interval between request message creations, and the number of request
-	 * nodes.
+	 * nodes. The following are legal parameter values:
+	 * <ul>
+	 * 		<li>updateLimit: above 0</li>
+	 * 		<li>requestIntervalRange: above 0</li>
+	 * 		<li>eventChanceRange</li>
+	 * 		<ol>
+	 * 			<li>-1, to disable events and agents</li>
+	 * 			<li>above 0 to enable event and specify value</li>
+	 * 		</ol>
+	 * 		<li>agentChanceRange</li>
+	 * 		<ol>
+	 * 			<li>-1, to disable agents</li>
+	 * 			<li>above 0 to enable agents and specify value</li>
+	 * 		</ol>
+	 * 		<li>numberOfRequestNodes</li>
+	 * 		<ol>
+	 * 			<li>0, to disable requests</li>
+	 * 			<li>above 0 to enable requests and specify value</li>
+	 * 		</ol>
+	 * </ul>
 	 * </p>
 	 * @param updateLimit the amount of updates the simulation should run.
 	 * @param eventChanceRange the request chance range.
@@ -60,18 +78,37 @@ public class Field{
 	 * @param requestIntervalRange the number of updates between request message creations.
 	 * @param numberOfRequestNodes number of request nodes.
 	 * @throws java.lang.IllegalArgumentException if either of the given arguments 
-	 * are equal to or less than zero.
+	 * don't follow the above mentioned rules.
 	 * @see Message
 	 * @see Node
 	 */
 	public Field(int updateLimit, int eventChanceRange, 
 			int agentChanceRange, int requestIntervalRange,
 			int numberOfRequestNodes) throws IllegalArgumentException{
-		if(updateLimit <= 0 || eventChanceRange <= 0 ||
-				agentChanceRange <= 0 || requestIntervalRange <= 0 ||
-				numberOfRequestNodes <= 0){
-			throw new IllegalArgumentException("Field params must be"
-					+ " natural numbers");
+		if(eventChanceRange == -1){
+			if(agentChanceRange == -1){
+				enableEventCreation = enableAgentCreation = false;
+			}else{
+				enableAgentCreation = true;
+				enableEventCreation = false;
+			}
+		}else if(agentChanceRange == -1){
+			enableAgentCreation = false;
+			enableEventCreation = true;
+		}else{
+			enableEventCreation = enableAgentCreation = true;
+		}
+		if(numberOfRequestNodes == 0){
+			enableRequestCreation = false;
+		}else{
+			enableRequestCreation = true;
+		}
+		
+		if(updateLimit <= 0 || (eventChanceRange != -1 && eventChanceRange <= 0) ||
+				(agentChanceRange != -1 &&  agentChanceRange <= 0) || 
+				requestIntervalRange <= 0 ||
+				numberOfRequestNodes < 0){
+			throw new IllegalArgumentException("Illegal argument(s).");
 		}else{
 			this.updateLimit = updateLimit;
 			this.eventChanceRange = eventChanceRange;
@@ -91,8 +128,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>update</b>
-	 * <pre>protected synchronized void update()</pre>
 	 * <p>
 	 * Updates all nodes in the node network by calling all of their subsequent update methods.
 	 * This method does this indiscriminately, meaning that it is up to each individual node
@@ -104,7 +139,7 @@ public class Field{
 	 * to "ready", meaning they are ready to be updated again.
 	 * </p>
 	 */
-	protected synchronized void update(){
+	public synchronized void update(){
 		Iterator<Entry<Position, Node>> iterator = nodeMap.entrySet().iterator();
 		Node tempNode;
 		Event event;
@@ -113,7 +148,7 @@ public class Field{
 			System.out.println(this.getCurrentTime() + ": running...");
 		}*/
 		
-		if(updateLimit >= getCurrentTime() && simulationIsRunning) {
+		if(updateLimit >= getCurrentTime() && simulationIsRunning){
 			if(shouldGenerateNewRequests()){
 				for(Node node : requestNodesList){
 					node.generateNewTask(random.nextInt(eventId));
@@ -186,7 +221,7 @@ public class Field{
 	 * Checks if a new event should be generated.
 	 * */
 	private boolean shouldGenerateNewEvent(){
-		return random.nextInt(eventChanceRange) == 0;
+		return enableEventCreation ? random.nextInt(eventChanceRange) == 0 : false;
 	}
 	
 	/*
@@ -195,7 +230,7 @@ public class Field{
 	 * Checks if a new agent message should be generated.
 	 * */
 	private boolean shouldGenerateNewAgentMsg(){
-		return random.nextInt(agentChanceRange) == 0;
+		return enableAgentCreation ? random.nextInt(agentChanceRange) == 0 : false;
 	}
     
 	/*
@@ -204,12 +239,11 @@ public class Field{
 	 * Checks if a new request message should be generated.
 	 * */
 	private boolean shouldGenerateNewRequests(){
-		return getCurrentTime()>0 && getCurrentTime()%requestIntervalRange==0;
+		return enableRequestCreation ? (getCurrentTime() > 0 &&
+				getCurrentTime()%requestIntervalRange == 0) : false;
 	}
 	
 	/**
-	 * <b>loadNodeNetwork</b>
-	 * <pre>public void loadNodeNetwork(HashMap<Position, Node> nodeMap)</pre>
 	 * <p>
 	 * This method must be called with an instantiated <code>HashMap</code> containing
 	 * the node network, before the simulation can be started. If the method is called
@@ -218,7 +252,8 @@ public class Field{
 	 * </p>
 	 * @param nodeMap the <code>HashMap</code> containing the node network.
 	 */
-	public void loadNodeNetwork(HashMap<Position, Node> nodeMap){
+	public void loadNodeNetwork(HashMap<Position, Node> nodeMap)
+			throws IllegalArgumentException{
 		if(!hasLoadedNodeNetwork && nodeMap != null){
 			setRecentlyChangedNodeNetwork(true);
 			
@@ -229,16 +264,20 @@ public class Field{
 				requestNeighbourUpdate(entry.getValue());
 			}
 			
-			createRequestNodesList();
-			
-			hasLoadedNodeNetwork = true;
-			setRecentlyChangedNodeNetwork(false);
+			if(numberOfRequestNodes > nodeMap.size()){
+				this.nodeMap.clear();
+				setRecentlyChangedNodeNetwork(false);
+				throw new IllegalArgumentException("more request nodes specified "
+						+ "than number of nodes in node network!");
+			}else{
+				createRequestNodesList();
+				hasLoadedNodeNetwork = true;
+				setRecentlyChangedNodeNetwork(false);
+			}
 		}
 	}
 	
 	/**
-	 * <b>loadNodeNetwork</b>
-	 * <pre>public void loadNodeNetwork(HashMap<Position, Node> nodeMap)</pre>
 	 * <p>
 	 * This operation is somewhat expensive, and if possible should be used
 	 * before the start of the simulation.</br>
@@ -287,8 +326,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>getCurrentTime</b>
-	 * <pre>public synchronized int getCurrentTime()</pre>
 	 * <p>
 	 * Returns the current time of the simulation.
 	 * </p>
@@ -299,8 +336,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>getHasLoadedNodeNetwork</b>
-	 * <pre>public synchronized boolean getHasLoadedNodeNetwork()</pre>
 	 * <p>
 	 * Returns whether or not a node network has been loaded by the field class.
 	 * </p>
@@ -312,8 +347,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>getHasLoadedNodeNetwork</b>
-	 * <pre>public boolean getHasLoadedNodeNetwork()</pre>
 	 * <p>
 	 * Returns whether or not the node network recently has been modified.</br>
 	 * No use as of this version.
@@ -326,8 +359,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>getStringRepresentation</b>
-	 * <pre>public String getStringRepresentation()</pre>
 	 * <p>
 	 * Returns a string representation of the node network. Do not confuse this with
 	 * a toString method. See the <code>getStringRepresentation</code> method in the
@@ -344,8 +375,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>getSimulationIsRunning</b>
-	 * <pre>public synchronized boolean getSimulationIsRunning()</pre>
 	 * <p>
 	 * Returns whether or not the simulation is currently running.
 	 * </p>
@@ -357,8 +386,6 @@ public class Field{
 	}
 	
 	/**
-	 * <b>setSimulationIsRunning</b>
-	 * <pre>public synchronized void setSimulationIsRunning()</pre>
 	 * <p>
 	 * Sets the simulation to run or stop. Only works as a means to start
 	 * the simulation once.

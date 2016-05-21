@@ -18,8 +18,6 @@ public class FieldRunner implements Runnable{
 	private Field field;
 	
 	/**
-	 * <b>FieldRunner</b>
-	 * <pre>public FieldRunner(Field field)</pre>
 	 * <p>
 	 * Creates a <code>FieldRunner</code> object for the specified <code>Field</code>
 	 * object, with an upper limit of 1000 updates per second.
@@ -33,8 +31,6 @@ public class FieldRunner implements Runnable{
 	}
 	
 	/**
-	 * <b>FieldRunner</b>
-	 * <pre>public FieldRunner(Field field)</pre>
 	 * <p>
 	 * Creates a <code>FieldRunner</code> object for the specified <code>Field</code>,
 	 *  and the upper bound on the amount of updates which are allowed per second.
@@ -57,8 +53,6 @@ public class FieldRunner implements Runnable{
 	}
 	
 	/**
-	 * <b>run</b>
-	 * <pre>public void run()</pre>
 	 * <p>
 	 * Starts a simulation on a <code>Field</code>.
 	 * </p>
@@ -88,8 +82,6 @@ public class FieldRunner implements Runnable{
 	}
 	
 	/**
-	 * <b>shutDown</b>
-	 * <pre>public synchronized void shutDown()</pre>
 	 * <p>
 	 * Tells the thread where the simulation is running on, to stop.
 	 * </p>

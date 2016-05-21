@@ -16,8 +16,6 @@ public class ImplicitEvent{
 	private Node node;
 	
 	/**
-	 * <b>ImplicitEvent</b>
-	 * <pre>public ImplicitEvent(Event event)</pre>
 	 * <p>
 	 * Creates an <code>ImplicitEvent</code> object with an <code>Event</code> as basis.
 	 * </p>
@@ -29,8 +27,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>ImplicitEvent</b>
-	 * <pre>public ImplicitEvent(int id, int distance, Node node)</pre>
 	 * <p>
 	 * Creates an <code>ImplicitEvent</code> object with attributes resembling
 	 * a real event.
@@ -47,8 +43,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>getId</b>
-	 * <pre>public int getId()</pre>
 	 * <p>
 	 * Returns the id of the event.
 	 * </p>
@@ -60,8 +54,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>setDistance</b>
-	 * <pre>public void setDistance(int distance)</pre>
 	 * <p>
 	 * Sets the distance to the event.
 	 * </p>
@@ -73,8 +65,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>getDistance</b>
-	 * <pre>public int getDistance()</pre>
 	 * <p>
 	 * Gets the distance to the event.
 	 * </p>
@@ -86,8 +76,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>setNode</b>
-	 * <pre>public void setNode(Node node)</pre>
 	 * <p>
 	 * Sets a new node which knows the way to the event.
 	 * </p>
@@ -99,8 +87,6 @@ public class ImplicitEvent{
 	}
 	
 	/**
-	 * <b>getNode</b>
-	 * <pre>public Node getNode()</pre>
 	 * <p>
 	 * Gets the node which knows the way to the event.
 	 * </p>

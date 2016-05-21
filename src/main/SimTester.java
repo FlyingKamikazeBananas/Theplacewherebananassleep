@@ -43,8 +43,6 @@ public class SimTester{
 	public static final int node_count_y = 50;
 	
 	/**
-	 * <b><i>main</i></b>
-	 * <pre>public static void main(String[] args)</pre>
 	 * <p>
 	 * Main body.
 	 * </p>

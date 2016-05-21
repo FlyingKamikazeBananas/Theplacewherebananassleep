@@ -22,12 +22,12 @@ import coordination.Position;
  * */
 public class AgentMessage extends Message{
 	
+	private final String agentId;
+	
 	private Map<Integer, ImplicitEvent> routingMap;
 	private Map<Position, Node> visitedNodes;
 	
 	/**
-	 * <b>AgentMessage</b>
-	 * <pre>public AgentMessage(Node node, int messageLife)</pre>
 	 * <p>
 	 * Creates an <code>AgentMessage</code> object with the
 	 * the amount of lives it should have.
@@ -38,20 +38,24 @@ public class AgentMessage extends Message{
 	 * to or less than zero.
 	 * @see Node
 	 */
-	public AgentMessage(Node node, int messageLife) throws IllegalArgumentException{
+	public AgentMessage(Node node, int messageLife, int time) throws IllegalArgumentException, 
+			NullPointerException{
 		super(messageLife);
-		
-		routingMap = new HashMap<Integer, ImplicitEvent>();
-		visitedNodes = new HashMap<Position, Node>();
-		
-		for(Entry<Integer, ImplicitEvent> entry : node.getRoutingMap().entrySet()){
-			routingMap.put(entry.getKey(), entry.getValue());
+		if(node != null){
+			routingMap = new HashMap<Integer, ImplicitEvent>();
+			visitedNodes = new HashMap<Position, Node>();
+			visitedNodes.put(node.getPosition(), node);
+			
+			for(Entry<Integer, ImplicitEvent> entry : node.getRoutingMap().entrySet()){
+				routingMap.put(entry.getKey(), entry.getValue());
+			}
+			agentId = node.toString() + "." + time;
+		}else{
+			throw new NullPointerException("null node given");
 		}
 	}
 	
 	/**
-	 * <b>update</b>
-	 * <pre>protected void update(Node node)</pre>
 	 * <p>
 	 * Fetch data from the routing map (by calling <code>getRoutingMap()</code>) of this instance before calling this 
 	 * method. When this method is called the internal data is cleared, to
@@ -72,8 +76,6 @@ public class AgentMessage extends Message{
 	}
 	
 	/**
-	 * <b>getRoutingMap</b>
-	 * <pre>public HashMap<Integer, ImplicitEvent> getRoutingMap()</pre>
 	 * <p>
 	 * Returns the routing map which the agent message holds. It contains
 	 * directions to various events.
@@ -85,8 +87,6 @@ public class AgentMessage extends Message{
 	}
 	
 	/**
-	 * <b>hasVisitedNode</b>
-	 * <pre>public boolean hasVisitedNode(Node node)</pre>
 	 * <p>
 	 * Returns <code>true</code> or <code>false</code> depending on if this message has been to
 	 * a specific node. If the given node is null, this returns <code>false</code>.
@@ -100,5 +100,9 @@ public class AgentMessage extends Message{
 			return visitedNodes.containsValue(node);
 		}
 		return false;
+	}
+	
+	public String getAgentId(){
+		return agentId;
 	}
 }
