@@ -16,8 +16,6 @@ public class Task{
 	private int numberOfTries;
 	
 	/**
-	 * <b>Task</b>
-	 * <pre>public Task(Object dataObject, TaskAction action)</pre>
 	 * <p>
 	 * Creates a <code>Task</code> object with the data associated with a specific task which
 	 * a node is to perform. This could be an <code>AgentMessage</code> along with the task of handling
@@ -35,8 +33,6 @@ public class Task{
 	}
 	
 	/**
-	 * <b>getDataObject</b>
-	 * <pre>public Object getDataObject()</pre>
 	 * <p>
 	 * Returns the data associated with the task.
 	 * </p>
@@ -47,8 +43,6 @@ public class Task{
 	}
 	
 	/**
-	 * <b>getAction</b>
-	 * <pre>public TaskAction getAction()</pre>
 	 * <p>
 	 * Returns the task to perform.
 	 * </p>
@@ -59,8 +53,6 @@ public class Task{
 	}
 	
 	/**
-	 * <b>incrementIndex</b>
-	 * <pre>public void incrementIndex()</pre>
 	 * <p>
 	 * Increments the amount of times a <code>Node</code> has attempted to
 	 * execute the task by 1.
@@ -71,8 +63,6 @@ public class Task{
 	}
 	
 	/**
-	 * <b>getHandleIntex</b>
-	 * <pre>public int getHandleIntex()</pre>
 	 * <p>
 	 * Returns the amount of times a <code>Node</code> has attempted to
 	 * execute the task.

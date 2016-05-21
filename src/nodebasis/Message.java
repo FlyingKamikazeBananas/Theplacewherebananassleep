@@ -15,8 +15,6 @@ public abstract class Message implements Lifespan{
 	private int currentMessageLifespan;
 	
 	/**
-	 * <b>Message</b>
-	 * <pre>public Message(int messageLife)</pre>
 	 * <p>
 	 * Creates a <code>Message</code> object with the 
 	 * amount of lives this message should possess.
@@ -36,8 +34,6 @@ public abstract class Message implements Lifespan{
 	protected abstract void update(Node node);
 	
 	/**
-	 * <b>decrementLifespan</b>
-	 * <pre>public void decrementLifespan()</pre>
 	 * <p>
 	 * Decrements the current lifespan of the message by one.
 	 * </p>
@@ -48,8 +44,6 @@ public abstract class Message implements Lifespan{
 	}
 	
 	/**
-	 * <b>isDead</b>
-	 * <pre>public boolean isDead()</pre>
 	 * <p>
 	 * Returns if the message has expired.
 	 * </p>
@@ -70,6 +64,15 @@ public abstract class Message implements Lifespan{
 		return result;
 	}
 
+	/**
+	 * <p>
+	 * Returns <code>true</code> if and only if this <code>Message</code> and 
+	 * the compared object refer to the same (<code>this == other is true</code>), or if the both <code>Message</code> objects 
+	 * share the same current lifespan and total lifespan.
+	 * </p>
+	 * @param obj the <code>Object</code> to compare to this.
+	 * @return <code>true</code> if this <code>Message</code> and the compared object refer to the same, or if their values correspond.
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)

@@ -27,11 +27,6 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 	private final int agentLife;
 	
 	/**
-	 * <b>StandardNodeNetworkGenerator</b>
-	 * <pre>public StandardNodeNetworkGenerator(int numNodesX, int numNodesY,
-			int nodeDistance, int nodeSignalStrength,
-			int requestLife, int agentLife,
-			Field field)</pre>
 	 * <p>
 	 * Creates a <code>StandardNodeNetworkGenerator</code> object to
 	 * prepare for the creation of a node network grid.
@@ -44,6 +39,7 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 	 * with.
 	 * @param requestLife the amount of lives this the nodes should instantiate their request messages
 	 * with.
+	 * @param field the <code>Field</code>.
 	 */
 	public StandardNodeNetworkGenerator(int numNodesX, int numNodesY,
 			int nodeDistance, int nodeSignalStrength,
@@ -60,8 +56,6 @@ public class StandardNodeNetworkGenerator implements NodeNetworkGenerator{
 		
 	}
 	/**
-	 * <b><i>generate</i></b>
-	 * <pre>public HashMap<Position, Node> generate()</pre>
 	 * <p>
 	 * Generates the node network and returns it in a <code>HashMap</code>.
 	 * Calling this method has no effect other than returning the generated node network

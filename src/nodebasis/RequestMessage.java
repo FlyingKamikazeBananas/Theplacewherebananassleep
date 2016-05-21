@@ -21,7 +21,7 @@ public class RequestMessage extends Message{
 	
 	private final int addressedTo;
 	private final int lifeSpan;
-	private final int requestId;
+	private final String requestId;
 	private final int timeOfCreation;
 	private final Node originatingNode;
 	
@@ -33,10 +33,6 @@ public class RequestMessage extends Message{
 	private boolean isReturned;
 	
 	/**
-	 * <b>RequestMessage</b>
-	 * <pre>public RequestMessage(int addressedTo, int messageLife,
-			int timeOfCreation, Node originatingNode)</pre>
-	 * <p>
 	 * Creates a <code>RequestMessage</code> object with the id to the sought event, the
 	 * amount of lives this message should possess, the time of its creation, and the
 	 * origin node as a reference.
@@ -51,24 +47,29 @@ public class RequestMessage extends Message{
 	 * @see Node
 	 */
 	public RequestMessage(int addressedTo, int messageLife,
-			int timeOfCreation, Node originatingNode) throws IllegalArgumentException{
+			int timeOfCreation, Node originatingNode) throws IllegalArgumentException, 
+			NullPointerException{
 		super(messageLife);
-		this.addressedTo = addressedTo;
-		this.lifeSpan = this.currentMessageLife = messageLife;
-		this.timeOfCreation = this.requestId = timeOfCreation;
-		this.originatingNode = originatingNode;
-		
-		routingStack = new Stack<Node>();
-		visitedNodes = new HashMap<Position, Node>();
-		setReturnToSender(false);
-		setIsReturned(false);
-		
-		routingStack.push(originatingNode);
+		if(originatingNode != null){
+			this.addressedTo = addressedTo;
+			this.lifeSpan = this.currentMessageLife = messageLife;
+			this.timeOfCreation = timeOfCreation;
+			this.requestId = "" + originatingNode.toString() + "." + timeOfCreation;
+			this.originatingNode = originatingNode;
+			
+			routingStack = new Stack<Node>();
+			visitedNodes = new HashMap<Position, Node>();
+			setReturnToSender(false);
+			setIsReturned(false);
+			
+			routingStack.push(originatingNode);
+			visitedNodes.put(originatingNode.getPosition(), originatingNode);
+		}else{
+			throw new NullPointerException("null node given");
+		}
 	}
 	
 	/**
-	 * <b>update</b>
-	 * <pre>protected void update(Node node)</pre>
 	 * <p>
 	 * Updates the message by adding or removing nodes to an internal stack
 	 * specifying the path from its origin, and depending where on its journey
@@ -97,8 +98,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>hasVisitedNode</b>
-	 * <pre>protected boolean hasVisitedNode(Node node)</pre>
 	 * <p>
 	 * Checks if the given node has passed along this message any time during the lifetime of this message.
 	 * </p>
@@ -125,8 +124,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>getReturnToSender</b>
-	 * <pre>protected boolean getReturnToSender()</pre>
 	 * <p>
 	 * Returns if this message is to be returned to its origin sender.
 	 * </p>
@@ -153,8 +150,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>getIsReturned</b>
-	 * <pre>protected boolean getIsReturned()</pre>
 	 * <p>
 	 * Returns if this message is returned to the original sender.
 	 * </p>
@@ -167,8 +162,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>getReturnAddress</b>
-	 * <pre>protected Node getReturnAddress()</pre>
 	 * <p>
 	 * Returns the most recent node on the path back to where 
 	 * the message came from.
@@ -181,8 +174,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>resetCurrentMessageLife</b>
-	 * <pre>protected void resetCurrentMessageLife()</pre>
 	 * <p>
 	 * Resets the current life of this message to the amount 
 	 * it was given when instantiated.
@@ -194,8 +185,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>getTimeOfCreation</b>
-	 * <pre>protected int getTimeOfCreation()</pre>
 	 * <p>
 	 * Returns the time this message was instantiated.
 	 * </p>
@@ -206,8 +195,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b>getEvent</b>
-	 * <pre>protected Event getEvent()</pre>
 	 * <p>
 	 * Returns the data fetched from the sought event.
 	 * </p>
@@ -250,12 +237,10 @@ public class RequestMessage extends Message{
 	}
 
 	/**
-	 * <b><i>equals</i></b>
-	 * <pre>public boolean equals(Object obj)</pre>
 	 * <p>
 	 * Returns <code>true</code> if and only if this <code>RequestMessage</code> and 
 	 * the compared object refer to the same (<code>this == other is true</code>), or if the both <code>RequestMessages</code>
-	 * share the same originating <code>Node<code> and are addressed to the same <code>Event<code>.
+	 * share the same originating <code>Node</code> and are addressed to the same <code>Event</code>.
 	 * </p>
 	 * @param obj the <code>Object</code> to compare to this.
 	 * @return <code>true</code> if this <code>RequestMessage</code> and the compared object refer to the same, or if their values correspond.
@@ -277,8 +262,6 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b><i>compareTo</i></b>
-	 * <pre>public int compareTo(RequestMessage message)</pre>
 	 * <p>
 	 * Compares this <code>RequestMessage</code> with another.
 	 * </p>
@@ -292,15 +275,13 @@ public class RequestMessage extends Message{
 	}
 	
 	/**
-	 * <b><i>getRequestId</i></b>
-	 * <pre>public int getRequestId()</pre>
 	 * <p>
 	 * Returns the id correlated to a <code>Request</code>.
 	 * </p>
 	 * @return the id of a <code>Request</code>
 	 * @see Request
 	 */
-	public int getRequestId(){
+	public String getRequestId(){
 		return requestId;
 	}
 	

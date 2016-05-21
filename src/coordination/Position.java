@@ -15,8 +15,6 @@ public class Position{
 	private final int x, y;
 	
 	/**
-	 * <b>Position</b>
-	 * <pre>public Position(int x, int y)</pre>
 	 * <p>
 	 * Creates a <code>Position</code> object with the specified x- and y-values.
 	 * </p>
@@ -29,8 +27,6 @@ public class Position{
 	}
 	
 	/**
-	 * <b><i>getX</i></b>
-	 * <pre>public int getX()</pre>
 	 * <p>
 	 * Gets the x-value.
 	 * </p>
@@ -41,8 +37,6 @@ public class Position{
 	}
 	
 	/**
-	 * <b><i>getY</i></b>
-	 * <pre>public int getY()</pre>
 	 * <p>
 	 * Gets the y-value.
 	 * </p>
@@ -64,8 +58,6 @@ public class Position{
 	}
 	
 	/**
-	 * <b><i>equals</i></b>
-	 * <pre>public boolean equals(Object obj)</pre>
 	 * <p>
 	 * Returns <code>true</code> if and only if this <code>Position</code> and 
 	 * the compared object refer to the same (<code>this == other is true</code>), <b>or</b> if the <code>x</code> and <code>y</code> values of this 

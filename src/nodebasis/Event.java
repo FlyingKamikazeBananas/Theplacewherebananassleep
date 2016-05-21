@@ -18,8 +18,6 @@ public class Event{
 	private final Node node;
 	
 	/**
-	 * <b>Event</b>
-	 * <pre>public Event(int id, int time, Node node)</pre>
 	 * <p>
 	 * Creates an <code>Event</code> object with the id of the event, the
 	 * time which the event occurred and the originating node.
@@ -36,8 +34,6 @@ public class Event{
 	}
 
 	/**
-	 * <b>getId</b>
-	 * <pre>public int getId()</pre>
 	 * <p>
 	 * Return the id of the event.
 	 * </p>
@@ -48,8 +44,6 @@ public class Event{
 	}
 
 	/**
-	 * <b>getTime</b>
-	 * <pre>public int getTime()</pre>
 	 * <p>
 	 * Return the time of the event.
 	 * </p>
@@ -60,8 +54,6 @@ public class Event{
 	}
 
 	/**
-	 * <b>getPosition</b>
-	 * <pre>public Position getPosition()</pre>
 	 * <p>
 	 * Return the position of the node where the event occurred.
 	 * </p>
@@ -72,8 +64,6 @@ public class Event{
 	}
 	
 	/**
-	 * <b>getNode</b>
-	 * <pre>public Node getNode()</pre>
 	 * <p>
 	 * Returns the node where the event occurred.
 	 * </p>
