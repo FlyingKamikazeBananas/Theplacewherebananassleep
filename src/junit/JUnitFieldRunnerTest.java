@@ -1,3 +1,5 @@
+package junit;
+
 import org.junit.Test;
 import surrounding.Field;
 import surrounding.FieldRunner;

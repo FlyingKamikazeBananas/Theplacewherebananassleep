@@ -1,5 +1,6 @@
+package junit;
 import coordination.Position;
-import nodebasis.AgentMessage;
+import nodebasis.Message;
 import nodebasis.Node;
 import nodebasis.RequestMessage;
 import org.junit.Assert;
@@ -83,20 +84,9 @@ public class JUnitRequestMessageTest {
 
         Assert.assertTrue(testRequestMessage1.hashCode() == testRequestMessage2.hashCode());
     }
-
-    @Test
-    public void requestMessageHashCodeIsNotEqual() {
-        Field testField1 = new Field(10,1,1,1,1);
-        Node testNode1 = new Node(testField1,
-                new Position(1,2), 1,1,1);
-        RequestMessage testRequestMessage1 = new RequestMessage(5,10,5,testNode1);
-        RequestMessage testRequestMessage2 = new RequestMessage(1,10,1,testNode1);
-
-        Assert.assertFalse(testRequestMessage1.hashCode() == testRequestMessage2.hashCode());
+    @Test(expected = IllegalArgumentException.class)
+    public void testIfMessageLifeIsLessThanZero()   {
+        Message testRequestMessage = new RequestMessage(1,-1, 1,
+                new Node(new Field(1,1,1,1,1), new Position(1,2),1,1,1));
     }
-
-
-
-
-
 }
