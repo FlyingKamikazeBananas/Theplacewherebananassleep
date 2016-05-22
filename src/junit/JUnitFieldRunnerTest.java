@@ -15,7 +15,7 @@ public class JUnitFieldRunnerTest {
     */
 
     @Test(expected = IllegalArgumentException.class)
-    public void testFieldRunner() {
+    public void testAssertUpdatesPerSecondIsGreaterThanZero() {
 
         int testUpdatesPerSecond = 0;
         Field testField = new Field(0,0,0,0,0);
@@ -24,7 +24,7 @@ public class JUnitFieldRunnerTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testRun() {
+    public void testIfRunWorksWithoutNetwork() {
 
         Field testField = new Field(0,0,0,0,0);
         FieldRunner testFieldRunner = new FieldRunner(testField);

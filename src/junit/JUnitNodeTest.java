@@ -32,22 +32,6 @@ public class JUnitNodeTest {
         Assert.assertFalse(testNode1.equals(testNode2));
 
     }
-    //Fungerar ej, osäkra på hur vi ska implementera.
-    
-    /*
-     Ni behöver inte skapa ett nodnätverk; ni behöver heller inte skapa en
-     FieldRunner och starta denna - ni ska dessutom stoppa tråden när ni är klar med den.
-     
-     Nodens uppdateringsmetod är publik, det är även generateNewEvent, generateNewTask(Event)
-     och generateNewTask(Integer). De senare två av dessa gör att Noden blir "uppdaterad". Utnyttja detta.
-    */
-    @Test
-    public void nodeDifferentTimeOfRecentUpdateShouldNotBeEqual() {
-        Node testNode1 = new Node(new Field(10,10,10,10,10), new Position(1,2), 1,1,1);
-        Node testNode2 = new Node(new Field(10,10,10,10,10), new Position(1,2), 1,1,1);
-        Event testEvent = testNode1.generateNewEvent(1);
-        testNode1.generateNewTask(testEvent);
-    }
 
     @Test
     public void nodeHashCodeExpectedEqual() {

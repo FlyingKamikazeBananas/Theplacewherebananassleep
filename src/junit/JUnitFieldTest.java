@@ -25,15 +25,7 @@ public class JUnitFieldTest {
         Field testField = new Field(1,1,1,1,1);
         assertFalse(testField.getHasLoadedNodeNetwork());
     }
-    @Test
-    public void testIfFieldIsLoaded()   {
 
-    }
-
-    @Test
-    public void testIfCenterNodeHasCorrectNeighbours()    {
-
-    }
     @Test(expected = IllegalArgumentException.class)
     public void testIfRequestNodesAmountExceedsMapSize()  {
         HashMap<Position, Node> testMap = new HashMap<Position, Node>();

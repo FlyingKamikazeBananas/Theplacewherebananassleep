@@ -1,5 +1,6 @@
 package junit;
 import coordination.Position;
+import nodebasis.Event;
 import nodebasis.Message;
 import nodebasis.Node;
 import nodebasis.RequestMessage;
@@ -89,4 +90,10 @@ public class JUnitRequestMessageTest {
         Message testRequestMessage = new RequestMessage(1,-1, 1,
                 new Node(new Field(1,1,1,1,1), new Position(1,2),1,1,1));
     }
+    @Test(expected = NullPointerException.class)
+    public void testIfOriginatingNodeIsNull()   {
+        Node testNode = null;
+        Message testRequestMessage = new RequestMessage(1, 1, 1, testNode);
+    }
+
 }
