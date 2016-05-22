@@ -24,7 +24,7 @@ public class JUnitFieldRunnerTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testIfRunWorksWithoutNetwork() {
+    public void testIfRunWorksWithoutInitiatedNetwork() {
 
         Field testField = new Field(0,0,0,0,0);
         FieldRunner testFieldRunner = new FieldRunner(testField);

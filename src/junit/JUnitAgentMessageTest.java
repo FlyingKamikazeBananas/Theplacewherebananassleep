@@ -14,7 +14,7 @@ import surrounding.Field;
 public class JUnitAgentMessageTest {
 
     @Test(expected = IllegalArgumentException.class)
-    public void testMessageLifeIsNotWithinThePermittedSpanOfIntegers() {
+    public void testMessageLifeIsGreaterThanZero() {
         Field testField1 = new Field(10,1,1,1,1);
 
         Node testNode1 = new Node(testField1,
@@ -44,8 +44,6 @@ public class JUnitAgentMessageTest {
         AgentMessage testAgentMessage1 = new AgentMessage(testNode1, 10, 1);
 
         Assert.assertFalse(testAgentMessage1.equals(testObject));
-
-
 
     }
 
