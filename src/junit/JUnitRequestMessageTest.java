@@ -1,6 +1,5 @@
 package junit;
 import coordination.Position;
-import nodebasis.Event;
 import nodebasis.Message;
 import nodebasis.Node;
 import nodebasis.RequestMessage;
@@ -14,7 +13,7 @@ import surrounding.Field;
 public class JUnitRequestMessageTest {
 
     @Test
-    public void twoRequestMessageIsEqual() {
+    public void twoRequestMessagesIsEqual() {
 
         Field testField1 = new Field(10,1,1,1,1);
         Node testNode1 = new Node(testField1,
@@ -51,7 +50,7 @@ public class JUnitRequestMessageTest {
 
     }
     @Test
-    public void twoRequestMessageDoesNotHaveSameOrigin() {
+    public void twoRequestMessagesDoesNotHaveSameOrigin() {
         Field testField1 = new Field(10,1,1,1,1);
         Node testNode1 = new Node(testField1,
                 new Position(1,2), 1,1,1);

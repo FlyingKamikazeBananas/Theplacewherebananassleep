@@ -16,14 +16,28 @@ import static junit.framework.TestCase.assertFalse;
 public class JUnitFieldTest {
 
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalFieldParams() {
-       Field testField = new Field(0,0,0,0,0);
+    public void testFieldUpdateLimitIsZero() {
+        Field testField = new Field(0,1,1,1,1);
     }
 
-    @Test
-    public void testIfFieldIsNotLoaded() {
-        Field testField = new Field(1,1,1,1,1);
-        assertFalse(testField.getHasLoadedNodeNetwork());
+    @Test(expected = IllegalArgumentException.class)
+    public void testFieldEventChanceRangeIsZero() {
+        Field testField = new Field(1,0,1,1,1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFieldAgentChanceRangeIsZero() {
+        Field testField = new Field(1,1,0,1,1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFieldRequestIntervalRangeIsZero() {
+        Field testField = new Field(1,1,1,0,1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFieldNumberOfRequestNodesIsLessThanZero() {
+        Field testField = new Field(1,1,1,1,-1);
     }
 
     @Test(expected = IllegalArgumentException.class)
